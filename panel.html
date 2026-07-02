@@ -164,6 +164,7 @@
       <div class="addrow" style="margin-top:14px">
         <button class="btn ghost mini" id="saveproj">⬇ Зберегти проєкт</button>
         <button class="btn ghost mini" id="loadproj">⬆ Завантажити</button>
+        <button class="btn ghost mini" id="newproj">🆕 Почати заново</button>
         <input type="file" id="loadprojInput" accept="application/json,.json" style="display:none">
       </div>
     </div>
@@ -736,7 +737,7 @@ function renderSlides(){
 }
 
 let pvTimer;
-function schedulePreview(){clearTimeout(pvTimer);pvTimer=setTimeout(renderPreview,350);}
+function schedulePreview(){clearTimeout(pvTimer);pvTimer=setTimeout(renderPreview,350);scheduleAutosave();}
 
 function scalePv(pv,f){ const scale=pv.clientWidth/1080; const h=FMT_H[fmt()];
   pv.style.aspectRatio=ASPECT[fmt()]; f.style.width="1080px"; f.style.height=h+"px";
@@ -906,14 +907,44 @@ $("#export").onclick=async()=>{
 $("#openf").onclick=()=>fetch("/api/open",{method:"POST"});
 
 // ── ЗБЕРЕЖЕННЯ / ЗАВАНТАЖЕННЯ ПРОЄКТУ (JSON, локально в браузері) ──
-function saveProject(){
+// Єдиний знімок стану — використовують і файл-збереження, і автозбереження.
+function collectState(){
   const v=id=>$("#"+id)?.value, ck=id=>!!$("#"+id)?.checked;
-  const proj={ v:1, brand:v("theme"), format:fmt(),
+  return { v:1, brand:v("theme"), format:fmt(),
     accent:v("accent"), kicker:v("kicker"), handle:v("handle"),
     fonts:{ fd:{name:v("fdName"),url:v("fdUrl"),weight:v("fdWeight"),italic:ck("fdItalic")},
             fb:{name:v("fbName"),url:v("fbUrl"),weight:v("fbWeight"),italic:ck("fbItalic")},
             fa:{name:v("faName"),url:v("faUrl"),color:v("faColor"),weight:v("faWeight"),italic:ck("faItalic")} },
     styleColors, slides };
+}
+function applyState(p){
+  const set=(id,val)=>{ const el=$("#"+id); if(el && val!=null) el.value=val; };
+  const setc=(id,val)=>{ const el=$("#"+id); if(el) el.checked=!!val; };
+  set("theme",p.brand); set("format",p.format); set("accent",p.accent);
+  set("kicker",p.kicker); set("handle",p.handle);
+  const f=p.fonts||{};
+  [["fd",f.fd],["fb",f.fb],["fa",f.fa]].forEach(([slot,pre])=>{ if(!pre)return;
+    set(slot+"Name",pre.name); set(slot+"Url",pre.url);
+    if(pre.weight!=null) set(slot+"Weight",pre.weight); setc(slot+"Italic",pre.italic);
+    if(slot==="fa"&&pre.color) set("faColor",pre.color); });
+  styleColors = p.styleColors||null;
+  slides = Array.isArray(p.slides)? p.slides : [];
+}
+
+// ── АВТОЗБЕРЕЖЕННЯ (localStorage) — робота не зникає при закритті/оновленні/збої ──
+const AUTOSAVE_KEY="carousel_autosave_v1";
+let autosaveTimer=null;
+function autosaveNow(){
+  try{ localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({t:Date.now(), state:collectState()})); }catch(e){}
+}
+function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer=setTimeout(autosaveNow, 600); }
+function loadAutosave(){
+  try{ const raw=localStorage.getItem(AUTOSAVE_KEY); const o=raw?JSON.parse(raw):null;
+    return (o && o.state && Array.isArray(o.state.slides)) ? o : null; }catch(e){ return null; }
+}
+
+function saveProject(){
+  const proj=collectState(); const v=id=>$("#"+id)?.value;
   const blob=new Blob([JSON.stringify(proj,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
   a.download="karusel-"+String(v("theme")||"proekt").replace(/[^a-zа-яіїєґ0-9_-]+/gi,"_")+".json";
@@ -922,30 +953,37 @@ function saveProject(){
 async function loadProject(file){
   try{
     const p=JSON.parse(await file.text());
-    const set=(id,val)=>{ const el=$("#"+id); if(el && val!=null) el.value=val; };
-    const setc=(id,val)=>{ const el=$("#"+id); if(el) el.checked=!!val; };
-    set("theme",p.brand); set("format",p.format); set("accent",p.accent);
-    set("kicker",p.kicker); set("handle",p.handle);
-    const f=p.fonts||{};
-    [["fd",f.fd],["fb",f.fb],["fa",f.fa]].forEach(([slot,pre])=>{ if(!pre)return;
-      set(slot+"Name",pre.name); set(slot+"Url",pre.url);
-      if(pre.weight!=null) set(slot+"Weight",pre.weight); setc(slot+"Italic",pre.italic);
-      if(slot==="fa"&&pre.color) set("faColor",pre.color); });
-    styleColors = p.styleColors||null;
-    slides = Array.isArray(p.slides)? p.slides : [];
-    renderSlides(); schedulePreview(); status("Проєкт завантажено: "+slides.length+" слайдів");
+    if(!p || !Array.isArray(p.slides)){ status("Це не схоже на файл каруселі",true); return; }
+    applyState(p);
+    renderSlides(); schedulePreview(); autosaveNow();
+    status("Проєкт завантажено: "+slides.length+" слайдів");
   }catch(e){ status("Не вдалося прочитати файл: "+e,true); }
+}
+function startFresh(){
+  if(!confirm("Почати з чистого аркуша? Поточну роботу буде замінено.\nЯкщо вона важлива — спершу «Зберегти проєкт» у файл.")) return;
+  slides=[]; styleColors=null;
+  addSlide("cover"); addSlide("text");
+  slides[0]["ЗАГ_1"]="Введи сюди"; slides[0]["ПІДЗАГ"]="свій текст";
+  slides[1]["ТЕЗА"]="Введи тезу"; slides[1]["ТЕКСТ"]="Введи сюди свій текст";
+  renderSlides(); schedulePreview(); autosaveNow(); status("Новий проєкт");
 }
 $("#saveproj").onclick=saveProject;
 $("#loadproj").onclick=()=>$("#loadprojInput").click();
 $("#loadprojInput").onchange=()=>{ const f=$("#loadprojInput").files[0]; if(f) loadProject(f); $("#loadprojInput").value=""; };
+$("#newproj").onclick=startFresh;
 
 (async()=>{ await loadConfig(); await loadThemes(); initFonts();
-  addSlide("cover"); addSlide("text");
-  // приклад-текст за замовчуванням — щоб одразу було видно, як виглядатиме текст на слайді
-  slides[0]["ЗАГ_1"]="Введи сюди"; slides[0]["ПІДЗАГ"]="свій текст";
-  slides[1]["ТЕЗА"]="Введи тезу"; slides[1]["ТЕКСТ"]="Введи сюди свій текст";
-  renderSlides(); schedulePreview(); })();
+  const saved=loadAutosave();
+  if(saved){                                    // є попередня сесія → відновлюємо (робота не зникає)
+    applyState(saved.state); renderSlides(); schedulePreview();
+    const ago=Math.max(0,Math.round((Date.now()-(saved.t||Date.now()))/60000));
+    status("↩ Відновлено вашу попередню роботу"+(ago?` (${ago} хв тому)`:"")+" · щоб очистити — «Почати заново»");
+  } else {                                      // перший запуск → приклад-текст
+    addSlide("cover"); addSlide("text");
+    slides[0]["ЗАГ_1"]="Введи сюди"; slides[0]["ПІДЗАГ"]="свій текст";
+    slides[1]["ТЕЗА"]="Введи тезу"; slides[1]["ТЕКСТ"]="Введи сюди свій текст";
+    renderSlides(); schedulePreview();
+  } })();
 </script>
 </body>
 </html>

@@ -214,7 +214,7 @@
       <details id="keywiz" style="margin-top:12px">
         <summary style="cursor:pointer;font-size:12px;color:var(--muted);font-weight:600">🔑 Свій ключ Gemini (для розкидання тексту)</summary>
         <div class="row" style="margin-top:10px;gap:8px;align-items:center">
-          <input type="text" id="geminiKey" placeholder="встав сюди ключ (AIza…)" style="flex:1;min-width:200px">
+          <input type="text" id="geminiKey" placeholder="встав сюди ключ Gemini (AQ.… або AIza…)" style="flex:1;min-width:200px">
           <button class="btn ghost mini" id="getKey">Отримати ключ</button>
         </div>
         <div id="keyok" style="font-size:12px;font-weight:600;margin-top:8px;display:none"></div>
@@ -375,12 +375,9 @@ function updateKeyState(){
   const warn=$("#keywarn"), ok=$("#keyok");
   if(warn) warn.style.display=(!hasKey && !uiKey)?"inline":"none";   // ховаємо, щойно є будь-який ключ
   if(ok){
+    // Google міняє формати ключів (AQ.… , AIza…) — не гадаємо префікс, приймаємо будь-який
     if(!uiKey){ ok.style.display="none"; }
-    else if(uiKey.startsWith("AIza")){ ok.style.display="block";
-      ok.textContent="✓ ключ збережено — можна розкидати"; ok.style.color="#1a7f3c"; }
-    else { ok.style.display="block";
-      ok.textContent="⚠ схоже не на ключ Gemini — він зазвичай починається з «AIza…». Перевір, чи скопіювала саме API-ключ.";
-      ok.style.color="#b8860b"; }
+    else { ok.style.display="block"; ok.textContent="✓ ключ збережено — можна розкидати"; ok.style.color="#1a7f3c"; }
   }
 }
 async function loadConfig(){

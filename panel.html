@@ -217,6 +217,7 @@
           <input type="text" id="geminiKey" placeholder="встав сюди ключ (AIza…)" style="flex:1;min-width:200px">
           <button class="btn ghost mini" id="getKey">Отримати ключ</button>
         </div>
+        <div id="keyok" style="font-size:12px;font-weight:600;margin-top:8px;display:none"></div>
         <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
           1)&nbsp;натисни «Отримати ключ» — відкриється Google AI&nbsp;Studio →
           2)&nbsp;увійди своїм Google і натисни «Create API key» →
@@ -368,9 +369,23 @@ function status(msg, err=false){
   clearTimeout(s._t); s._t=setTimeout(()=>s.classList.remove("show"), err?7000:2600);
 }
 
+// єдиний стан ключа: керує і попередженням про .env, і зеленим підтвердженням майстра
+function updateKeyState(){
+  const uiKey=($("#geminiKey")?.value||"").trim();
+  const warn=$("#keywarn"), ok=$("#keyok");
+  if(warn) warn.style.display=(!hasKey && !uiKey)?"inline":"none";   // ховаємо, щойно є будь-який ключ
+  if(ok){
+    if(!uiKey){ ok.style.display="none"; }
+    else if(uiKey.startsWith("AIza")){ ok.style.display="block";
+      ok.textContent="✓ ключ збережено — можна розкидати"; ok.style.color="#1a7f3c"; }
+    else { ok.style.display="block";
+      ok.textContent="⚠ схоже не на ключ Gemini — він зазвичай починається з «AIza…». Перевір, чи скопіювала саме API-ключ.";
+      ok.style.color="#b8860b"; }
+  }
+}
 async function loadConfig(){
   try{ const c = await (await fetch("/api/config")).json();
-    hasKey = !!c.hasKey; $("#keywarn").style.display = hasKey ? "none" : "inline";
+    hasKey = !!c.hasKey; updateKeyState();
     const name={gemini:"Gemini",opus:"Opus 4.8"}[c.engine];
     const lbl=$("#splitlabel"); if(lbl) lbl.textContent="Розкидати текст по слайдах"+(name?" · "+name:"");
   }catch(e){}
@@ -890,8 +905,8 @@ $("#expandAll").onclick=()=>{ slides.forEach(s=>s._open=true); renderSlides(); }
 
 // майстер ключа Gemini: зберігаємо локально, відкриваємо AI Studio
 (function(){ const k=$("#geminiKey"); if(k){ k.value=localStorage.getItem("geminiKey")||"";
-  k.oninput=()=>localStorage.setItem("geminiKey",k.value.trim());
-  if(k.value) $("#keywiz").open=true; }
+  k.oninput=()=>{ localStorage.setItem("geminiKey",k.value.trim()); updateKeyState(); };
+  if(k.value) $("#keywiz").open=true; updateKeyState(); }
   const g=$("#getKey"); if(g) g.onclick=()=>window.open("https://aistudio.google.com/apikey","_blank"); })();
 
 $("#split").onclick=async()=>{

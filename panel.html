@@ -922,12 +922,22 @@ $("#export").onclick=async()=>{
   if(!slides.length){status("Немає слайдів для експорту",true);return;}
   const btn=$("#export");btn.disabled=true;btn.textContent="Рендерю…";
   try{
-    const res=await (await fetch("/api/export",{method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({theme:BASE_THEME,slides,overrides:overrides()})})).json();
-    if(res.error) status("Помилка експорту: "+res.error,true);
-    else{ status("Готово: "+res.pngs.length+" PNG → out/. Відкриваю папку…");
-      fetch("/api/open",{method:"POST"}); }
+    if(window.karusel?.isDesktop){
+      // ЗАСТОСУНОК: малюємо всередині (вбудований Chromium), без зовнішнього Chrome
+      const data=await (await fetch("/api/preview",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({theme:BASE_THEME,slides,overrides:overrides()})})).json();
+      if(data.error) throw new Error(data.error);
+      const H={"3:4":1440,"4:5":1350,"1:1":1080}[fmt()]||1350;
+      const res=await window.karusel.exportPng({htmls:data.htmls, w:1080, h:H});
+      status(res.count? "Готово: "+res.count+" PNG. Відкрила папку…" : "Не вдалося створити PNG", !res.count);
+    } else {
+      // БРАУЗЕР: старий шлях (сервер + render.sh)
+      const res=await (await fetch("/api/export",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({theme:BASE_THEME,slides,overrides:overrides()})})).json();
+      if(res.error) status("Помилка експорту: "+res.error,true);
+      else if(!res.pngs||!res.pngs.length) status("Не вдалося створити PNG (0 файлів)",true);
+      else{ status("Готово: "+res.pngs.length+" PNG → out/. Відкриваю папку…"); fetch("/api/open",{method:"POST"}); }
+    }
   }catch(e){status("Помилка: "+e,true);}
   btn.disabled=false;btn.textContent="Експорт PNG";
 };

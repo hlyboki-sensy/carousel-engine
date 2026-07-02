@@ -18,10 +18,11 @@
     "appId": "studio.hlybokisensy.karusel",
     "productName": "Карусель-панель",
     "directories": { "output": "dist" },
-    "files": ["main.js", "package.json"],
+    "files": ["main.js", "preload.js", "package.json"],
     "extraResources": [
       { "from": "..", "to": "engine",
-        "filter": ["**/*", "!desktop/**", "!out/**", "!uploads/**", "!graphify-out/**", "!.venv/**"] }
+        "filter": ["**/*", "!desktop/**", "!out/**", "!uploads/**", "!graphify-out/**", "!.venv/**",
+                   "!.git/**", "!**/__pycache__/**", "!.DS_Store", "!*.md"] }
     ],
     "mac": { "target": "dmg", "category": "public.app-category.graphics-design" },
     "win": { "target": "nsis" }

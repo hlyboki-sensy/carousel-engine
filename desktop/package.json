@@ -25,7 +25,9 @@
                    "!.git/**", "!**/__pycache__/**", "!.DS_Store", "!*.md"] },
       { "from": "resources/carousel-server", "to": "carousel-server" }
     ],
-    "mac": { "target": "dmg", "category": "public.app-category.graphics-design" },
+    "mac": { "target": "dmg", "category": "public.app-category.graphics-design",
+             "minimumSystemVersion": "10.15",
+             "x64ArchFiles": "**/{carousel-server,cutout}" },
     "win": { "target": "nsis" }
   }
 }

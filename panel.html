@@ -229,6 +229,8 @@
     <div class="block">
       <div class="label">Стиль · шрифти + кольори</div>
       <div class="addrow" id="fontpresets"></div>
+      <div style="font-size:11px;color:var(--muted);margin:12px 0 6px">Кольори стилю&nbsp;— клікни, щоб&nbsp;підправити (діє поверх обраного стилю):</div>
+      <div id="palette" style="display:flex;flex-wrap:wrap;gap:12px"></div>
       <div class="row" style="gap:12px">
         <div style="flex:1;min-width:140px">
           <label class="f">Заголовки — назва</label>
@@ -488,7 +490,31 @@ function applyFontPreset(p){ $("#fdName").value=p.d[0]; $("#fdUrl").value=p.d[1]
     slides.forEach(s=>{s.bgColor="";});          // хай палітра стилю сама задає тло
   } else if(p.reset){ styleColors=null; applyThemeDefaults();
     slides.forEach(s=>{s.bgColor="";}); }
-  renderSlides(); schedulePreview(); }
+  refreshPaletteInputs(); renderSlides(); schedulePreview(); }
+// ── РЕДАКТОР КОЛЬОРІВ СТИЛЮ — ручне тонке налаштування палітри поверх пресету ──
+const PALETTE_FIELDS=[["lightBg","Тло світлого"],["coverBg","Тло обкладинки"],["photoBg","Тло темного"],
+  ["textOnLight","Заголовок (світле)"],["textOnDark","Заголовок (темне)"],["bodyOnLight","Текст (світле)"]];
+function normHex(v){ return (typeof v==="string" && /^#[0-9a-fA-F]{6}$/.test(v)) ? v : ""; }
+function basePalette(){ return (FONT_PRESETS.find(p=>p.c)||{c:{}}).c; }   // фірмова палітра = дефолт
+function currentPalette(){ return styleColors || basePalette(); }
+function initPalette(){
+  const box=$("#palette"); if(!box) return; box.innerHTML="";
+  const pal=currentPalette();
+  PALETTE_FIELDS.forEach(([key,lbl])=>{
+    const wrap=document.createElement("label");
+    wrap.style.cssText="display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--muted);align-items:center;text-align:center;width:64px";
+    wrap.textContent=lbl;
+    const c=document.createElement("input"); c.type="color"; c.dataset.pkey=key;
+    c.style.cssText="width:44px;height:28px;padding:0;border:1px solid var(--line);cursor:pointer;background:none";
+    c.value=normHex(pal[key])||"#cccccc";
+    c.oninput=()=>{ if(!styleColors) styleColors={...basePalette()};   // матеріалізуємо палітру перед правкою
+      styleColors[key]=c.value; renderSlides(); schedulePreview(); };
+    wrap.appendChild(c); box.appendChild(wrap);
+  });
+}
+function refreshPaletteInputs(){ const pal=currentPalette();
+  document.querySelectorAll('#palette input[data-pkey]').forEach(c=>{ const v=normHex(pal[c.dataset.pkey]); if(v) c.value=v; }); }
+
 function initFonts(){ const box=$("#fontpresets");
   FONT_PRESETS.forEach(p=>{ const b=document.createElement("button");
     b.className="btn ghost mini";
@@ -511,7 +537,8 @@ function initFonts(){ const box=$("#fontpresets");
       status("Шрифт додано: "+$("#"+nameId).value); schedulePreview(); };
   };
   wire("fdFile","fdFileInput","fdName","fdUrl");
-  wire("fbFile","fbFileInput","fbName","fbUrl"); }
+  wire("fbFile","fbFileInput","fbName","fbUrl");
+  initPalette(); }
 
 function addSlide(type){
   const blank = type==="blank";
@@ -929,6 +956,7 @@ function applyState(p){
     if(slot==="fa"&&pre.color) set("faColor",pre.color); });
   styleColors = p.styleColors||null;
   slides = Array.isArray(p.slides)? p.slides : [];
+  refreshPaletteInputs();
 }
 
 // ── АВТОЗБЕРЕЖЕННЯ (localStorage) — робота не зникає при закритті/оновленні/збої ──

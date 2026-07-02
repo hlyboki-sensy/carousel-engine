@@ -14,13 +14,18 @@ out/_size.txt зберігає розмір формату «W H» для render
 «Різні шрифти, різні кольори» = просто інша тема. Той самий контент.
 """
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+# у зібраному .app корінь ресурсів (templates/themes/textures) приходить через env
+# CAROUSEL_ROOT (engine у бандлі); при звичайному запуску — поряд із цим файлом.
+_ENV_ROOT = os.environ.get("CAROUSEL_ROOT")
+ROOT = Path(_ENV_ROOT).resolve() if _ENV_ROOT else Path(__file__).resolve().parent
 TPL = ROOT / "templates"
-OUT = ROOT / "out"
+# out — записувана тека; у .app корінь read-only, тож можна перекрити через env
+OUT = Path(os.environ.get("CAROUSEL_OUT") or (ROOT / "out"))
 
 # плейсхолдери {{...}} — латиниця для теми (FONT_DISPLAY), кирилиця для контенту (ЗАГ_1)
 PH = re.compile(r"\{\{([A-Z0-9_А-ЯІЇЄҐ]+)\}\}")

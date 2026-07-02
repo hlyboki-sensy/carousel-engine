@@ -31,7 +31,12 @@ import build  # той самий движок
 
 ROOT = build.ROOT
 THEMES = ROOT / "themes"
-UPLOADS = ROOT / "uploads"
+# uploads має бути записуваним (у .app корінь read-only) — перекривається через env
+UPLOADS = Path(os.environ.get("CAROUSEL_UPLOADS") or (ROOT / "uploads"))
+try:
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 OUT = build.OUT
 PANEL = ROOT / "panel.html"
 BIN = ROOT / "bin"

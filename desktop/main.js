@@ -21,7 +21,21 @@ function ping(cb) {
 }
 
 function startServer() {
-  serverProc = spawn('python3', ['server.py'], { cwd: ENGINE, stdio: 'ignore' });
+  // записувані теки поза .app (корінь застосунку read-only)
+  const uploads = path.join(app.getPath('userData'), 'uploads');
+  const out = path.join(app.getPath('userData'), 'out');
+  const frozen = path.join(process.resourcesPath || '', 'carousel-server');
+  if (fs.existsSync(frozen)) {
+    // ЗІБРАНИЙ .app: заморожений сервер + вшитий движок (системний Python НЕ потрібен)
+    const env = { ...process.env,
+      CAROUSEL_ROOT: path.join(process.resourcesPath, 'engine'),
+      CAROUSEL_UPLOADS: uploads, CAROUSEL_OUT: out };
+    serverProc = spawn(frozen, [], { env, stdio: 'ignore' });
+  } else {
+    // РОЗРОБКА (npm start): системний python3 + движок поряд
+    const env = { ...process.env, CAROUSEL_UPLOADS: uploads, CAROUSEL_OUT: out };
+    serverProc = spawn('python3', ['server.py'], { cwd: ENGINE, env, stdio: 'ignore' });
+  }
   serverProc.on('error', e => console.error('server spawn error:', e));
 }
 

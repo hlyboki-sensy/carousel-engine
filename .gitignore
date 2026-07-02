@@ -17,3 +17,7 @@ themes/_panel.json
 
 # macOS
 .DS_Store
+
+# Десктоп: важкі/відтворювані артефакти
+desktop/resources/
+desktop/dist/

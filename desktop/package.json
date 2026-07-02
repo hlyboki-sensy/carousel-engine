@@ -22,7 +22,8 @@
     "extraResources": [
       { "from": "..", "to": "engine",
         "filter": ["**/*", "!desktop/**", "!out/**", "!uploads/**", "!graphify-out/**", "!.venv/**",
-                   "!.git/**", "!**/__pycache__/**", "!.DS_Store", "!*.md"] }
+                   "!.git/**", "!**/__pycache__/**", "!.DS_Store", "!*.md"] },
+      { "from": "resources/carousel-server", "to": "carousel-server" }
     ],
     "mac": { "target": "dmg", "category": "public.app-category.graphics-design" },
     "win": { "target": "nsis" }

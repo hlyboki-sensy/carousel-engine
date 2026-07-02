@@ -48,6 +48,22 @@ TEMPLATES = {
     for t in ("cover", "text", "photo")
 }
 
+# ── БЕЗПЕКА локального сервера ─────────────────────────────────────────────
+# /file віддає ЛИШЕ медіа/шрифти — щоб чужа вкладка не прочитала ключі, .env, код, документи.
+SERVE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".woff2", ".woff", ".ttf", ".otf"}
+MAX_BODY = 25 * 1024 * 1024   # ліміт тіла запиту (проти локального DoS)
+
+def origin_allowed(headers):
+    """Проти CSRF/cross-site: дозволяємо запити без Origin (Electron/curl/навігація)
+    або з localhost. Чужий сайт у браузері надішле Origin свого домену → відмова."""
+    o = headers.get("Origin")
+    if not o:
+        return True
+    try:
+        return urllib.parse.urlparse(o).hostname in ("127.0.0.1", "localhost")
+    except Exception:
+        return False
+
 
 def read_env(key):
     """Дістати ключ із ../.env без сторонніх залежностей."""
@@ -285,6 +301,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _read_json(self):
         n = int(self.headers.get("Content-Length", 0))
+        if n > MAX_BODY:
+            raise ValueError("payload завеликий")
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
@@ -299,6 +317,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"hasKey": bool(eng), "engine": eng,
                                     "formats": list(build.FORMATS.keys())})
         if u.path == "/file":
+            if not origin_allowed(self.headers):
+                return self._send(403, {"error": "forbidden"})
             q = urllib.parse.parse_qs(u.query)
             return self._serve_file(Path(q.get("path", [""])[0]))
         if u.path.startswith("/uploads/"):
@@ -316,6 +336,8 @@ class Handler(BaseHTTPRequestHandler):
         if not p.exists() or not p.is_file():
             return self._send(404, {"error": "not found"})
         ext = p.suffix.lower()
+        if ext not in SERVE_EXT:                      # лише медіа/шрифти — не секрети/код/документи
+            return self._send(403, {"error": "forbidden file type"})
         ctype = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
                  ".webp": "image/webp", ".gif": "image/gif",
                  ".woff2": "font/woff2", ".woff": "font/woff",
@@ -324,12 +346,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Content-Type-Options", "nosniff")   # без CORS * — чужий сайт не прочитає
         self.end_headers()
         return self.wfile.write(data)
 
     def do_POST(self):
         u = urllib.parse.urlparse(self.path)
+        if not origin_allowed(self.headers):          # проти CSRF з чужої вкладки
+            return self._send(403, {"error": "forbidden"})
         try:
             if u.path == "/api/preview":
                 d = self._read_json()

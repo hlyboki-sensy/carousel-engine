@@ -13,6 +13,7 @@ out/_size.txt зберігає розмір формату «W H» для render
 
 «Різні шрифти, різні кольори» = просто інша тема. Той самий контент.
 """
+import html
 import json
 import os
 import re
@@ -266,7 +267,9 @@ def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
                  "dim", "cutRotate", "textureOp",
                  "showKicker", "showRule", "showHandle"):
             continue
-        m[k] = _accent_markup(_glue_short_words(v)) if isinstance(v, str) else v
+        # html.escape ПЕРЕД розміткою: текст користувача не може впорснути теги (self-XSS),
+        # а «<», «&» більше не ламають верстку. Акцентні *зірочки* лишаються робочими.
+        m[k] = _accent_markup(_glue_short_words(html.escape(v, quote=False))) if isinstance(v, str) else v
 
     m["W"] = str(w)
     m["H"] = str(h)

@@ -53,6 +53,15 @@ TEMPLATES = {
 SERVE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".woff2", ".woff", ".ttf", ".otf"}
 MAX_BODY = 25 * 1024 * 1024   # ліміт тіла запиту (проти локального DoS)
 
+# CSP для панелі: дозволяє поточну роботу (inline-скрипт панелі, Google Fonts, локальні фото),
+# але connect-src 'self' блокує відправлення даних на чужі домени навіть якби був XSS.
+PANEL_CSP = ("default-src 'self'; "
+             "script-src 'self' 'unsafe-inline'; "
+             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+             "font-src 'self' https://fonts.gstatic.com data:; "
+             "img-src 'self' data: blob: http://127.0.0.1:8090; "
+             "connect-src 'self'; frame-src 'self' data:")
+
 def origin_allowed(headers):
     """Проти CSRF/cross-site: дозволяємо запити без Origin (Electron/curl/навігація)
     або з localhost. Чужий сайт у браузері надішле Origin свого домену → відмова."""
@@ -285,10 +294,13 @@ def split_text(text, count=None, key=None):
 
 
 class Handler(BaseHTTPRequestHandler):
+    server_version = "Karusel"   # не розкриваємо версію Python/BaseHTTP у заголовку Server
+    sys_version = ""
+
     def log_message(self, *a):
         pass
 
-    def _send(self, code, body, ctype="application/json; charset=utf-8"):
+    def _send(self, code, body, ctype="application/json; charset=utf-8", extra=None):
         if isinstance(body, (dict, list)):
             body = json.dumps(body, ensure_ascii=False).encode("utf-8")
         elif isinstance(body, str):
@@ -296,6 +308,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        if extra:
+            for hk, hv in extra.items():
+                self.send_header(hk, hv)
         self.end_headers()
         self.wfile.write(body)
 
@@ -309,7 +324,7 @@ class Handler(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path)
         if u.path == "/":
             return self._send(200, PANEL.read_text(encoding="utf-8"),
-                              "text/html; charset=utf-8")
+                              "text/html; charset=utf-8", extra={"Content-Security-Policy": PANEL_CSP})
         if u.path == "/api/themes":
             return self._send(200, list_themes())
         if u.path == "/api/config":

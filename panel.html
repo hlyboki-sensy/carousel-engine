@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карусель-панель</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500;1,700;1,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* стилістика «Картки на білому»: біле тло, картки ледь кремові, тепла рамка */
+    --bg:#ffffff; --panel:#f5f2ec; --line:#e8e3d9; --ink:#262626;
+    --muted:#8e8e8e; --accent:#FFD20E; --blue:#0095f6; --blue-d:#1877f2;
+    --field:#ffffff; --danger:#ed4956; --radius:0px;
+    --display:"Playfair Display","Didot","Bodoni 72","Hoefler Text",Georgia,serif;
+    --body:"Helvetica Neue","Helvetica",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);
+    display:grid;grid-template-columns:minmax(440px,1fr) minmax(360px,560px);
+    min-height:100vh;-webkit-font-smoothing:antialiased}
+  h1{font-family:var(--display);font-style:italic;font-weight:800;font-size:38px;letter-spacing:-.015em;line-height:1.02}
+  .kick{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+  /* шапка — застосунок у дусі Instagram */
+  .controls{padding:28px 30px 130px;overflow-y:auto;max-height:100vh;border-right:1px solid var(--line);background:var(--bg)}
+  .head{margin-bottom:26px}
+  .brandrow{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .mark{width:54px;height:54px;border-radius:13px;flex:none;display:grid;place-items:center;
+    background:#141414;cursor:pointer;transition:transform .15s;text-decoration:none}
+  .mark:hover{transform:scale(1.04)}
+  .mark .mk{font-family:var(--display);font-weight:800;font-size:10px;line-height:.82;
+    letter-spacing:-.01em;text-align:center;color:#fff}
+  .mark .mk b{color:var(--accent);font-weight:800}
+  .wordmark{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.01em;line-height:1.1}
+  .wordmark i{font-style:normal;color:var(--accent);font-weight:900;margin:0 2px}
+  .wordmark span{font-style:italic;font-weight:500;color:var(--muted)}
+  .head .kick{margin-top:4px}
+  .head h1{margin-top:16px}
+
+  /* секції-картки */
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;margin-bottom:14px}
+  .block>.label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink);font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .block>.label::before{content:"";width:14px;height:2px;background:var(--accent);border-radius:2px;flex:none}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  label.f{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px;letter-spacing:.01em;font-weight:500}
+  input[type=text],textarea,select{width:100%;background:var(--field);border:1px solid var(--line);
+    color:var(--ink);border-radius:8px;padding:10px 12px;font-family:var(--body);
+    font-size:14px;line-height:1.5;transition:border-color .15s,box-shadow .15s}
+  textarea{resize:vertical;min-height:74px}
+  input::placeholder,textarea::placeholder{color:#b9b9b9}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ink);
+    box-shadow:0 0 0 3px rgba(38,38,38,.06)}
+  input[type=color]{width:46px;height:38px;padding:0;border:1px solid var(--line);
+    border-radius:8px;background:var(--field);cursor:pointer}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+
+  /* сегментний перемикач — як IG-таби */
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--field)}
+  .seg button{background:transparent;border:none;padding:8px 15px;font-size:13px;font-weight:600;
+    cursor:pointer;color:var(--muted);font-family:var(--body);transition:.15s}
+  .seg button.on{background:var(--accent);color:#1a1204}
+
+  /* кнопки — фірмовий стиль: контурні, рамка «наливається» світлом на наведенні */
+  .btn{background:transparent;color:var(--ink);border:1.5px solid var(--accent);
+    padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.02em;
+    font-family:var(--body);transition:.18s;box-shadow:0 0 0 rgba(255,210,14,0)}
+  .btn:hover{background:rgba(255,210,14,.10);
+    box-shadow:0 0 20px rgba(255,210,14,.55), inset 0 0 0 1px var(--accent)}
+  .btn.ghost{background:var(--field);color:var(--ink);border:1px solid var(--line);
+    font-weight:600;box-shadow:none}
+  .btn.ghost:hover{background:#fff;border-color:var(--accent);
+    box-shadow:0 0 12px rgba(255,210,14,.3)}
+  .btn.mini{padding:7px 12px;font-size:12px;font-weight:600}
+  .btn:disabled{opacity:.45;cursor:default;box-shadow:none}
+  .addrow .btn.ghost:hover{border-color:var(--accent);color:var(--ink)}
+
+  /* картки-слайди */
+  .slide{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:15px 16px;margin-bottom:12px;transition:box-shadow .15s}
+  /* згортуваний заголовок слайда */
+  .slidehead{display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none;padding:2px}
+  .slidehead .chev{color:var(--muted);font-size:12px;width:12px;flex:none;text-align:center}
+  .slidehead .snum{width:28px;height:28px;background:var(--ink);color:#fff;display:grid;
+    place-items:center;font-size:13px;font-weight:700;flex:none}
+  .slidehead .stitle{flex:1;min-width:0;font-family:var(--display);font-style:italic;font-weight:700;
+    font-size:23px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .slidehead .stype{font-family:var(--body);font-style:normal;font-weight:700;font-size:11px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .slidehead .sprev{font-family:var(--body);font-style:normal;font-weight:400;font-size:13px;color:var(--muted)}
+  .slidehead .sacts{display:flex;gap:6px;flex:none}
+  .slidebody{margin-top:6px}
+  .slide:hover{box-shadow:0 2px 14px rgba(0,0,0,.05)}
+  .slide .top{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .slide .num{width:26px;height:26px;border-radius:50%;background:var(--ink);
+    color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+  .slide .top select{width:auto;flex:1}
+  .sub{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+  .sub .cap{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    margin-bottom:8px;font-weight:700}
+  .thumbwrap{margin-top:10px;display:flex;align-items:center;gap:10px}
+  .thumb{width:46px;height:58px;border-radius:8px;border:1px solid var(--line);
+    object-fit:cover;background:var(--field)}
+  .photoname{font-size:12px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .addrow{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap}
+  .crop label.f{margin-top:8px}
+  .crop .val{font-size:11px;color:var(--muted);float:right;font-weight:600}
+
+  /* права колонка — стрічка прев'ю */
+  .preview{padding:28px 28px 60px;background:var(--bg);overflow-y:auto;max-height:100vh}
+  .preview .kick{margin-bottom:18px;display:flex;align-items:center;gap:8px}
+  .preview .kick::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+  .previews{display:flex;flex-direction:column;gap:20px;align-items:center}
+  .pv{position:relative;width:100%;max-width:420px;border-radius:var(--radius);overflow:hidden;
+    border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .pv iframe{position:absolute;top:0;left:0;border:0;transform-origin:top left}
+  .pv .tag{position:absolute;top:10px;left:10px;z-index:2;background:rgba(0,0,0,.6);
+    color:#fff;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;
+    padding:4px 9px;border-radius:20px}
+  .empty{color:var(--muted);font-size:14px;padding:40px 0;text-align:center}
+
+  .status{position:fixed;bottom:16px;right:24px;background:var(--ink);
+    border:1px solid var(--ink);border-radius:10px;padding:11px 17px;font-size:13px;font-weight:500;
+    color:#fff;max-width:460px;opacity:0;transform:translateY(6px);transition:.2s;z-index:30;
+    box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  .status.show{opacity:1;transform:none}
+  .status.err{background:var(--danger);border-color:var(--danger)}
+  /* панель дій — НЕПРОЗОРА, у правому нижньому куті (не перетинає поле редагування) */
+  .bar{position:fixed;bottom:22px;right:26px;left:auto;display:flex;gap:10px;z-index:40;
+    background:#fff;border:1px solid var(--line);padding:9px;
+    box-shadow:0 10px 34px rgba(0,0,0,.18)}
+  .bar .btn{box-shadow:none}                    /* всередині бару кнопки суцільні, без «наливання» */
+  #export{background:var(--accent);color:#1a1204;border-color:var(--accent);
+    animation:pulseGlow 2.6s ease-in-out infinite}
+  #export:hover{background:#ffdb33;border-color:#ffdb33;animation:none;
+    box-shadow:0 0 24px rgba(255,210,14,.7)}
+  #openf{background:var(--ink);color:#fff;border-color:var(--ink)}
+  #openf:hover{background:#000;border-color:#000}
+  @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 rgba(255,210,14,0)}
+    50%{box-shadow:0 0 22px rgba(255,210,14,.6)}}
+
+  /* прямі кути — без заокруглень (окрім круглої IG-аватарки) */
+  .block,.slide,.pv,.pv .tag,.btn,.btn.mini,.seg,input,textarea,select,
+  .thumb,.status,.slide .num{border-radius:0 !important}
+  .mark,.mark img{border-radius:50% !important}
+</style>
+</head>
+<body>
+  <div class="controls">
+    <div class="head">
+      <div class="brandrow">
+        <a class="mark" href="https://instagram.com/hlyboki_sensy" target="_blank" rel="noopener" title="@hlyboki_sensy в Instagram">
+          <span class="mk">Hlyboki<br><b>Sensy</b></span>
+        </a>
+        <div>
+          <div class="wordmark">Hlyboki Sensy <i>·</i> <span>студія</span></div>
+          <div class="kick">конструктор каруселей</div>
+        </div>
+      </div>
+      <h1>Карусель-панель</h1>
+      <div class="addrow" style="margin-top:14px">
+        <button class="btn ghost mini" id="saveproj">⬇ Зберегти проєкт</button>
+        <button class="btn ghost mini" id="loadproj">⬆ Завантажити</button>
+        <input type="file" id="loadprojInput" accept="application/json,.json" style="display:none">
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="label">Бренд і формат</div>
+      <div class="row" style="gap:14px;align-items:flex-end">
+        <div style="flex:1;min-width:150px">
+          <label class="f">Тема (бренд)</label>
+          <input type="text" id="theme" placeholder="назва бренду (напр. hlyboki_sensy)">
+        </div>
+        <div>
+          <label class="f">Формат</label>
+          <select id="format" style="width:auto">
+            <option value="4:5">4:5</option>
+            <option value="3:4" selected>3:4</option>
+            <option value="1:1">1:1</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px;gap:16px">
+        <div>
+          <label class="f">Акцент</label>
+          <input type="color" id="accent" value="#FFD20E">
+        </div>
+        <div style="flex:1;min-width:140px">
+          <label class="f">Кікер (шапка)</label>
+          <input type="text" id="kicker" placeholder="роздуми маркетолога">
+        </div>
+        <div style="flex:1;min-width:140px">
+          <label class="f">Хендл</label>
+          <input type="text" id="handle" placeholder="@hlyboki_sensy">
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="label" id="splitlabel">Розкидати текст по слайдах</div>
+      <textarea id="bigtext" placeholder="Встав сюди великий текст — і Gemini сам розкладе його на слайди-тези."></textarea>
+      <div class="row" style="margin-top:10px;gap:10px;align-items:center">
+        <button class="btn" id="split">Розкидати</button>
+        <span style="font-size:12px;color:var(--muted)">к-сть слайдів:</span>
+        <input type="text" id="splitcount" value="" placeholder="авто" style="width:70px">
+        <span id="keywarn" style="font-size:12px;color:var(--danger);display:none">немає ключа (GEMINI_API_KEY або ANTHROPIC_API_KEY) у .env</span>
+      </div>
+      <!-- майстер ключа Gemini (для версії без .env — людина вставляє свій ключ) -->
+      <details id="keywiz" style="margin-top:12px">
+        <summary style="cursor:pointer;font-size:12px;color:var(--muted);font-weight:600">🔑 Свій ключ Gemini (для розкидання тексту)</summary>
+        <div class="row" style="margin-top:10px;gap:8px;align-items:center">
+          <input type="text" id="geminiKey" placeholder="встав сюди ключ (AIza…)" style="flex:1;min-width:200px">
+          <button class="btn ghost mini" id="getKey">Отримати ключ</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+          1)&nbsp;натисни «Отримати ключ» — відкриється Google AI&nbsp;Studio →
+          2)&nbsp;увійди своїм Google і натисни «Create API key» →
+          3)&nbsp;скопіюй ключ і встав сюди. Безкоштовно, вводиться один&nbsp;раз.
+          Решта конструктора працює й без ключа.
+        </div>
+      </details>
+    </div>
+
+    <div class="block">
+      <div class="label">Стиль · шрифти + кольори</div>
+      <div class="addrow" id="fontpresets"></div>
+      <div class="row" style="gap:12px">
+        <div style="flex:1;min-width:140px">
+          <label class="f">Заголовки — назва</label>
+          <input type="text" id="fdName" placeholder="напр. Playfair Display">
+        </div>
+        <div style="flex:2;min-width:200px">
+          <label class="f">Заголовки — посилання (CSS або .woff2/.ttf)</label>
+          <input type="text" id="fdUrl" placeholder="https://fonts.googleapis.com/css2?family=…">
+        </div>
+      </div>
+      <div class="row" style="gap:14px;margin-top:6px;align-items:flex-end">
+        <div><label class="f">Заголовки — нарис</label>
+          <select id="fdWeight" style="width:auto">
+            <option value="300">300 · Light</option>
+            <option value="400" selected>400 · Regular</option>
+            <option value="500">500 · Medium</option>
+            <option value="600">600 · SemiBold</option>
+            <option value="700">700 · Bold</option>
+            <option value="800">800 · ExtraBold</option>
+            <option value="900">900 · Black</option>
+          </select></div>
+        <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;padding-bottom:10px;cursor:pointer">
+          <input type="checkbox" id="fdItalic" style="width:auto;accent-color:var(--accent)"> курсив</label>
+      </div>
+      <div class="row" style="gap:12px;margin-top:8px">
+        <div style="flex:1;min-width:140px">
+          <label class="f">Текст — назва</label>
+          <input type="text" id="fbName" placeholder="напр. Manrope">
+        </div>
+        <div style="flex:2;min-width:200px">
+          <label class="f">Текст — посилання</label>
+          <input type="text" id="fbUrl" placeholder="https://fonts.googleapis.com/css2?family=…">
+        </div>
+      </div>
+      <div class="row" style="gap:14px;margin-top:6px;align-items:flex-end">
+        <div><label class="f">Текст — нарис</label>
+          <select id="fbWeight" style="width:auto">
+            <option value="300">300 · Light</option>
+            <option value="400" selected>400 · Regular</option>
+            <option value="500">500 · Medium</option>
+            <option value="600">600 · SemiBold</option>
+            <option value="700">700 · Bold</option>
+            <option value="800">800 · ExtraBold</option>
+            <option value="900">900 · Black</option>
+          </select></div>
+        <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;padding-bottom:10px;cursor:pointer">
+          <input type="checkbox" id="fbItalic" style="width:auto;accent-color:var(--accent)"> курсив</label>
+      </div>
+      <div class="row" style="gap:12px;margin-top:12px">
+        <div style="flex:1;min-width:140px">
+          <label class="f">Акцент — назва</label>
+          <input type="text" id="faName" placeholder="напр. Comforter Brush">
+        </div>
+        <div style="flex:2;min-width:200px">
+          <label class="f">Акцент — посилання</label>
+          <input type="text" id="faUrl" placeholder="https://fonts.googleapis.com/css2?family=…">
+        </div>
+      </div>
+      <div class="row" style="gap:14px;margin-top:6px;align-items:flex-end">
+        <div><label class="f">Акцент — колір</label>
+          <input type="color" id="faColor" value="#FFD20E"></div>
+        <div><label class="f">Акцент — нарис</label>
+          <select id="faWeight" style="width:auto">
+            <option value="inherit" selected>як заголовок</option>
+            <option value="300">300 · Light</option>
+            <option value="400">400 · Regular</option>
+            <option value="500">500 · Medium</option>
+            <option value="600">600 · SemiBold</option>
+            <option value="700">700 · Bold</option>
+            <option value="800">800 · ExtraBold</option>
+            <option value="900">900 · Black</option>
+          </select></div>
+        <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;padding-bottom:10px;cursor:pointer">
+          <input type="checkbox" id="faItalic" style="width:auto;accent-color:var(--accent)"> курсив</label>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Оберни слово в&nbsp;*зірочки* прямо в&nbsp;тезі чи&nbsp;заголовку&nbsp;— воно стане акцентним. Напр.: <b>тиша *між* словами</b></div>
+
+      <div class="addrow" style="margin-top:12px">
+        <button class="btn ghost mini" id="fdFile">⬆ Заголовки — з&nbsp;комп'ютера</button>
+        <button class="btn ghost mini" id="fbFile">⬆ Текст — з&nbsp;комп'ютера</button>
+        <input type="file" id="fdFileInput" accept=".woff2,.woff,.ttf,.otf,font/*" style="display:none">
+        <input type="file" id="fbFileInput" accept=".woff2,.woff,.ttf,.otf,font/*" style="display:none">
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Порожні поля&nbsp;= шрифт із&nbsp;теми. Візьми свій шрифт із&nbsp;комп'ютера (.woff2/.ttf/.otf) або встав посилання на&nbsp;Google&nbsp;Fonts&nbsp;— і&nbsp;дизайн стане будь-яким.</div>
+    </div>
+
+    <div class="block">
+      <div class="label">Слайди</div>
+      <div class="addrow" style="margin-bottom:12px">
+        <button class="btn ghost mini" id="collapseAll">⊟ згорнути всі</button>
+        <button class="btn ghost mini" id="expandAll">⊞ розгорнути всі</button>
+      </div>
+      <div id="slides"></div>
+      <div class="addrow">
+        <button class="btn ghost mini" data-add="cover">+ обкладинка</button>
+        <button class="btn ghost mini" data-add="text">+ слайд</button>
+        <button class="btn ghost mini" data-add="blank">+ пустий</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview">
+    <div class="kick">живе прев'ю</div>
+    <div id="previews" class="previews"><div class="empty">Додай слайди — і&nbsp;вони&nbsp;з'являться тут.</div></div>
+  </div>
+
+  <div class="bar">
+    <button class="btn" id="export">Експорт PNG</button>
+    <button class="btn ghost" id="openf">Відкрити папку</button>
+  </div>
+  <div class="status" id="status"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const previewsEl = $("#previews"), slidesEl = $("#slides");
+let themes = [], slides = [], hasKey = false;
+let styleColors = null;   // активна палітра стилю-пресету (null = кольори теми)
+
+const FIELDS = {
+  cover: [["ЗАГ_1","Заголовок, рядок 1","text","Введи заголовок"],
+          ["ЗАГ_2","Заголовок, рядок 2","text","другий рядок (необов'язково)"],
+          ["ПІДЗАГ","Підзаголовок","area","підзаголовок / свій текст"]],
+  text:  [["ТЕЗА","Теза","text","Введи тезу"],["ТЕКСТ","Текст","area","Введи сюди свій текст"]],
+  photo: [["ТЕЗА","Теза","text","Введи тезу"],["ТЕКСТ","Текст","area","Введи сюди свій текст"]],
+  blank: [["ТЕЗА","Теза","text","(необов'язково)"],["ТЕКСТ","Текст","area","(необов'язково)"]],
+};
+const HAS_PHOTO = {cover:true, photo:true, text:true, blank:true};
+// фото-текстури (не згенеровані патерни) — дефолтна інтенсивність 1.0
+const IMG_TEX = new Set(["kraft","cream","glaze","coffee","chocolate","matcha","linen","flower","leaf"]);
+const ASPECT = {"3:4":3/4, "4:5":4/5, "1:1":1};
+const FMT_H = {"3:4":1440, "4:5":1350, "1:1":1080};
+
+function status(msg, err=false){
+  const s=$("#status"); s.textContent=msg; s.classList.toggle("err",err); s.classList.add("show");
+  clearTimeout(s._t); s._t=setTimeout(()=>s.classList.remove("show"), err?7000:2600);
+}
+
+async function loadConfig(){
+  try{ const c = await (await fetch("/api/config")).json();
+    hasKey = !!c.hasKey; $("#keywarn").style.display = hasKey ? "none" : "inline";
+    const name={gemini:"Gemini",opus:"Opus 4.8"}[c.engine];
+    const lbl=$("#splitlabel"); if(lbl) lbl.textContent="Розкидати текст по слайдах"+(name?" · "+name:"");
+  }catch(e){}
+}
+// базова палітра-фундамент (кольори/шрифти за замовч.); сам ВИГЛЯД далі керується
+// пресетами «Стиль», акцентом і шрифтами. «Тема (бренд)» — вільний підпис, не файл.
+const BASE_THEME="hlyboki.json";
+async function loadThemes(){
+  themes = await (await fetch("/api/themes")).json();
+  applyThemeDefaults();
+}
+function currentTheme(){ return themes.find(t=>t.file===BASE_THEME)||themes[0]; }
+function applyThemeDefaults(){
+  const t=currentTheme(); if(!t) return;
+  if(!$("#theme").value) $("#theme").value=t.name||"hlyboki_sensy";
+  $("#accent").value=t.accent||"#FFD20E";
+  $("#kicker").value=t.kicker||"";
+  $("#handle").value=t.handle||"";
+}
+function fmt(){ return $("#format").value; }
+function fontsOverride(){ const g=id=>($("#"+id)?.value||"").trim();
+  const gw=id=>parseInt($("#"+id)?.value)||null, gi=id=>!!$("#"+id)?.checked;
+  const aw=$("#faWeight")?.value;
+  return {display:{name:g("fdName"),url:g("fdUrl"),weight:gw("fdWeight"),italic:gi("fdItalic")},
+          body:{name:g("fbName"),url:g("fbUrl"),weight:gw("fbWeight"),italic:gi("fbItalic")},
+          accent:{name:g("faName"),url:g("faUrl"),color:g("faColor"),
+                  weight:(aw&&aw!=="inherit")?parseInt(aw):null,
+                  italic:gi("faItalic")?true:null}}; }
+function overrides(){ const o={accent:$("#accent").value, kicker:$("#kicker").value,
+  handle:$("#handle").value, format:fmt(), fonts:fontsOverride()};
+  if(styleColors) o.colors={...styleColors, accent:$("#accent").value};
+  return o; }
+
+// готові СТИЛІ: пара шрифтів (Google Fonts) + палітра кольорів; далі — класичні пари; «з теми» — скидання
+const _MONT="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..900;1,300..900&display=swap";
+const _PLAYF="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap";
+const _CAVEAT="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&display=swap";
+const _MANROPE="https://fonts.googleapis.com/css2?family=Manrope:wght@300..800&display=swap";
+const _CORM="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400..700;1,400..600&display=swap";
+const _INTER="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap";
+const _LORA="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..600&display=swap";
+const _COMFORTER="https://fonts.googleapis.com/css2?family=Comforter+Brush&display=swap";
+// СТИЛІ: пара шрифтів + нарис (вага/курсив) + палітра. dw/di — нарис заголовків, bw/bi — тексту
+const FONT_PRESETS=[
+  // ── фірмовий: серіф-курсив + жовтий акцент, кремово-темна база
+  {t:"Глибокі Сенси", d:["Didot",_PLAYF], b:["Manrope",_MANROPE], dw:400, di:true, bw:400, bi:false,
+   sw:["#cfc9c2","#2b211b","#FFD20E"],
+   c:{accent:"#FFD20E",photoBg:"#11151a",coverBg:"#cfc9c2",lightBg:"#d7d0c5",
+      textOnDark:"#f4efe7",textOnLight:"#2b211b",bodyOnLight:"#473b31",
+      mutedOnDark:"rgba(244,239,231,0.82)",mutedOnLight:"rgba(60,48,38,0.5)"}},
+  // ── Оксамит: золотий рукописний скрипт (заголовок) + світлий гротеск (текст) на темному
+  {t:"Оксамит", d:["Comforter Brush",_COMFORTER], b:["Montserrat",_MONT], dw:400, di:false, bw:500, bi:false,
+   sw:["#14110F","#C9A24B","#ECE3CE"],
+   c:{accent:"#C9A24B",photoBg:"#14110F",coverBg:"#14110F",lightBg:"#14110F",
+      textOnDark:"#C9A24B",textOnLight:"#C9A24B",bodyOnLight:"#ECE3CE",bodyOnDark:"#ECE3CE",
+      mutedOnDark:"rgba(236,227,206,0.6)",mutedOnLight:"rgba(236,227,206,0.6)"}},
+  // ── Ніч: монохром-темний + один теплий спалах (monochromatic + accent pop)
+  {t:"Ніч", d:["Montserrat",_MONT], b:["Montserrat",_MONT], dw:800, di:false, bw:500, bi:false,
+   sw:["#141210","#F5F1EA","#FF6A3D"],
+   c:{accent:"#FF6A3D",photoBg:"#141210",coverBg:"#141210",lightBg:"#141210",
+      textOnDark:"#F5F1EA",textOnLight:"#F5F1EA",bodyOnLight:"#C7C0B6",
+      mutedOnDark:"rgba(245,241,234,0.6)",mutedOnLight:"rgba(245,241,234,0.55)"}},
+  // ── Море: комплементарна пара — глибокий синій × теплий бурштин
+  {t:"Море", d:["Playfair Display",_PLAYF], b:["Montserrat",_MONT], dw:600, di:true, bw:400, bi:false,
+   sw:["#14243A","#EAE6DD","#E0A458"],
+   c:{accent:"#E0A458",photoBg:"#101F33",coverBg:"#14243A",lightBg:"#EAE6DD",
+      textOnDark:"#EEF2F7",textOnLight:"#14243A",bodyOnLight:"#3E4A5A",
+      mutedOnDark:"rgba(238,242,247,0.7)",mutedOnLight:"rgba(20,36,58,0.5)"}},
+  // ── Ботанік: аналогова зелена гама — шавлія × глибокий зелений
+  {t:"Ботанік", d:["Cormorant",_CORM], b:["Inter",_INTER], dw:600, di:true, bw:400, bi:false,
+   sw:["#E7E9E0","#23291F","#5E7C52"],
+   c:{accent:"#5E7C52",photoBg:"#1C2A1E",coverBg:"#232E22",lightBg:"#E7E9E0",
+      textOnDark:"#EEF1E8",textOnLight:"#23291F",bodyOnLight:"#45503C",
+      mutedOnDark:"rgba(238,241,232,0.7)",mutedOnLight:"rgba(35,41,31,0.5)"}},
+  // ── Лаванда: монохром фіолетовий (deep plum → lavender)
+  {t:"Лаванда", d:["Montserrat",_MONT], b:["Montserrat",_MONT], dw:800, di:false, bw:500, bi:false,
+   sw:["#4A2340","#C9A9E9","#7A4A70"],
+   c:{accent:"#C9A9E9",photoBg:"#4A2340",coverBg:"#4A2340",lightBg:"#4A2340",
+      textOnDark:"#EDE3F5",textOnLight:"#EDE3F5",bodyOnLight:"#D8C7EA",
+      mutedOnDark:"rgba(237,227,245,0.6)",mutedOnLight:"rgba(237,227,245,0.6)"}},
+  // ── Глина: аналогова тепла земля — глина × теракота (каліграфія)
+  {t:"Глина", d:["Caveat",_CAVEAT], b:["Montserrat",_MONT], dw:400, di:false, bw:600, bi:false,
+   sw:["#E9DCCB","#B4532A","#3A2A20"],
+   c:{accent:"#B4532A",photoBg:"#241812",coverBg:"#2A1D15",lightBg:"#E9DCCB",
+      textOnDark:"#F4EBDD",textOnLight:"#3A2A20",bodyOnLight:"#5A4636",
+      mutedOnDark:"rgba(244,235,221,0.7)",mutedOnLight:"rgba(58,42,32,0.5)"}},
+  // ── Монохром: ахроматична база + один червоний акцент (achromatic + pop)
+  {t:"Монохром", d:["Lora",_LORA], b:["Inter",_INTER], dw:700, di:true, bw:400, bi:false,
+   sw:["#101010","#F4F4F4","#E63329"],
+   c:{accent:"#E63329",photoBg:"#101010",coverBg:"#101010",lightBg:"#101010",
+      textOnDark:"#F4F4F4",textOnLight:"#F4F4F4",bodyOnLight:"#C4C4C4",
+      mutedOnDark:"rgba(244,244,244,0.55)",mutedOnLight:"rgba(244,244,244,0.55)"}},
+  {t:"↺ з теми", d:["",""], b:["",""], reset:true},
+];
+function styleCardBg(t){ if(styleColors){
+    return {cover:styleColors.coverBg,text:styleColors.lightBg,photo:styleColors.photoBg}[t]||"#d7d0c5"; }
+  return t==="text"?"#d7d0c5":"#11151a"; }
+// підвантажити CSS-шрифт у сам застосунок (щоб поля форми теж показувались тим шрифтом)
+function ensureFontLink(url){ if(!url || url.split("?")[0].match(/\.(woff2?|ttf|otf)$/i)) return;
+  if([...document.querySelectorAll('link[data-styanfont]')].some(l=>l.href===url)) return;
+  const l=document.createElement('link'); l.rel='stylesheet'; l.href=url;
+  l.setAttribute('data-styanfont','1'); document.head.appendChild(l); }
+// прев'ю шрифтів стилю прямо в полях «Бренд і формат»: тема — заголовковим, кікер/хендл — текстовим
+function applyPanelFonts(p){
+  ensureFontLink(p.d[1]); ensureFontLink(p.b[1]);
+  const disp = p.d[0] ? '"'+p.d[0]+'",Georgia,serif' : "";
+  const body = p.b[0] ? '"'+p.b[0]+'",Arial,sans-serif' : "";
+  $("#theme").style.fontFamily = disp;
+  $("#kicker").style.fontFamily = body;
+  $("#handle").style.fontFamily = body; }
+function applyFontPreset(p){ $("#fdName").value=p.d[0]; $("#fdUrl").value=p.d[1];
+  $("#fbName").value=p.b[0]; $("#fbUrl").value=p.b[1];
+  $("#fdWeight").value=p.dw||400; $("#fdItalic").checked=!!p.di;
+  $("#fbWeight").value=p.bw||400; $("#fbItalic").checked=!!p.bi;
+  applyPanelFonts(p);
+  if(p.c){ styleColors={...p.c}; $("#accent").value=p.c.accent;
+    slides.forEach(s=>{s.bgColor="";});          // хай палітра стилю сама задає тло
+  } else if(p.reset){ styleColors=null; applyThemeDefaults();
+    slides.forEach(s=>{s.bgColor="";}); }
+  renderSlides(); schedulePreview(); }
+function initFonts(){ const box=$("#fontpresets");
+  FONT_PRESETS.forEach(p=>{ const b=document.createElement("button");
+    b.className="btn ghost mini";
+    if(p.sw){ b.innerHTML=p.sw.map(x=>'<i style="display:inline-block;width:9px;height:9px;border-radius:50%;'
+        +'background:'+x+';margin-right:3px;vertical-align:middle;border:1px solid rgba(0,0,0,.15)"></i>').join('')
+        +'<span style="vertical-align:middle">'+p.t+'</span>'; }
+    else b.textContent=p.t;
+    b.onclick=()=>applyFontPreset(p); box.appendChild(b); });
+  ["fdName","fdUrl","fbName","fbUrl","faName","faUrl","faColor"].forEach(id=>$("#"+id).oninput=schedulePreview);
+  ["fdWeight","fdItalic","fbWeight","fbItalic","faWeight","faItalic"].forEach(id=>$("#"+id).onchange=schedulePreview);
+  // шрифт із комп'ютера → завантажуємо, ставимо назву + локальний URL
+  const wire=(btnId,inpId,nameId,urlId)=>{
+    $("#"+btnId).onclick=()=>$("#"+inpId).click();
+    $("#"+inpId).onchange=async()=>{ const f=$("#"+inpId).files[0]; if(!f)return;
+      status("Завантажую шрифт…");
+      const path=await uploadFile(f);
+      const base=path.split("/").pop();
+      $("#"+urlId).value=location.origin+"/uploads/"+encodeURIComponent(base);
+      $("#"+nameId).value=f.name.replace(/\.(woff2?|ttf|otf)$/i,"").replace(/[-_]+/g," ").trim();
+      status("Шрифт додано: "+$("#"+nameId).value); schedulePreview(); };
+  };
+  wire("fdFile","fdFileInput","fdName","fdUrl");
+  wire("fbFile","fbFileInput","fbName","fbUrl"); }
+
+function addSlide(type){
+  const blank = type==="blank";
+  const s={type, bgMode:(type==="cover"||type==="photo")?"photo":"color", bgColor:"",
+    photo:"", posX:0, posY:0, scale:1, rotate:0, cutout:"", cutX:50, cutY:50, cutScale:1,
+    textX:0, textY:0, textAlign:"center", plate:"none", plateOpacity:0.5, texture:"",
+    dim:0, cutRotate:0,
+    // «Пустий» стартує без службових написів; решта — з ними (можна вимкнути тумблером)
+    showKicker:!blank, showRule:!blank, showHandle:!blank};
+  FIELDS[type].forEach(([k])=>s[k]="");
+  slides.push(s); renderSlides(); schedulePreview();
+}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function mkMini(txt,fn){const b=document.createElement("button");
+  b.className="btn ghost mini";b.textContent=txt;b.onclick=fn;return b;}
+function move(i,d){const j=i+d;if(j<0||j>=slides.length)return;
+  [slides[i],slides[j]]=[slides[j],slides[i]];renderSlides();schedulePreview();}
+
+// --- завантажити зображення на сервер, повернути шлях ---
+async function uploadFile(f){
+  const dataUrl=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f);});
+  const res=await (await fetch("/api/upload",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:f.name,dataUrl})})).json();
+  return res.path;
+}
+
+function slider(card,label,obj,key,min,max,step){
+  const l=document.createElement("label");l.className="f";
+  const val=document.createElement("span");val.className="val";val.textContent=(+obj[key]).toFixed(2);
+  l.textContent=label;l.appendChild(val);card.appendChild(l);
+  const r=document.createElement("input");r.type="range";r.min=min;r.max=max;r.step=step;r.value=obj[key];
+  r.oninput=()=>{obj[key]=parseFloat(r.value);val.textContent=(+obj[key]).toFixed(2);schedulePreview();};
+  card.appendChild(r);
+}
+
+function renderSlides(){
+  slidesEl.innerHTML="";
+  slides.forEach((s,i)=>{
+    const open = s._open!==false;
+    const card=document.createElement("div"); card.className="slide";
+    // ── ЗГОРТУВАНИЙ ЗАГОЛОВОК ──
+    const typeName={cover:"Обкладинка",text:"Слайд",photo:"Слайд",blank:"Пустий"}[s.type]||s.type;
+    const prev=String(s["ЗАГ_1"]||s["ТЕЗА"]||"").replace(/\*/g,"").trim();
+    const head=document.createElement("div"); head.className="slidehead";
+    head.innerHTML=`<span class="chev">${open?"▾":"▸"}</span>`+
+      `<span class="snum">${i+1}</span>`+
+      `<span class="stitle">Слайд ${i+1}<span class="stype"> · ${typeName}</span>`+
+      (prev?`<span class="sprev"> — ${prev.slice(0,34)}</span>`:``)+`</span>`;
+    head.onclick=()=>{ s._open=!open; renderSlides(); };
+    const acts=document.createElement("div"); acts.className="sacts";
+    const up=mkMini("↑",()=>move(i,-1)), dn=mkMini("↓",()=>move(i,1)),
+          rm=mkMini("✕",()=>{slides.splice(i,1);renderSlides();schedulePreview();});
+    rm.style.color="var(--danger)";
+    [up,dn,rm].forEach(b=>b.addEventListener("click",e=>e.stopPropagation()));
+    acts.append(up,dn,rm); head.appendChild(acts);
+    card.appendChild(head);
+    if(!open){ slidesEl.appendChild(card); return; }   // згорнуто — показуємо лише заголовок
+
+    // тип слайда (у розгорнутому тілі)
+    const tsel=document.createElement("select"); tsel.style.marginTop="8px";
+    [["cover","Обкладинка"],["text","Слайд"],["blank","Пустий"]].forEach(([t,lbl])=>{const o=document.createElement("option");
+      o.value=t;o.textContent=lbl;
+      if(t===s.type || (t==="text" && !["cover","blank"].includes(s.type)))o.selected=true;tsel.appendChild(o);});
+    tsel.onchange=()=>{ const wasBlank=s.type==="blank"; s.type=tsel.value;
+      FIELDS[s.type].forEach(([k])=>{ if(!(k in s)) s[k]=""; });
+      if(!HAS_PHOTO[s.type]) s.bgMode="color";
+      else if(!s.bgMode) s.bgMode="photo";
+      // «Пустий» → чисто (написи геть); повернення з «пустого» → написи назад
+      if(s.type==="blank"){ s.showKicker=s.showRule=s.showHandle=false; }
+      else if(wasBlank){ s.showKicker=s.showRule=s.showHandle=true; }
+      renderSlides(); schedulePreview(); };
+    card.appendChild(tsel);
+
+    // текстові поля
+    FIELDS[s.type].forEach(([k,lbl,kind,ph])=>{
+      const l=document.createElement("label"); l.className="f"; l.textContent=lbl; card.appendChild(l);
+      const el=document.createElement(kind==="area"?"textarea":"input");
+      if(kind!=="area") el.type="text";
+      if(ph) el.placeholder=ph;
+      el.value=s[k]||""; el.oninput=()=>{s[k]=el.value;schedulePreview();};
+      card.appendChild(el);
+    });
+
+    // --- НАПИСИ НА СЛАЙДІ: показати/прибрати кікер, лінію-роздільник, хендл ---
+    const nm=document.createElement("div"); nm.className="sub";
+    nm.innerHTML='<div class="cap">Написи на слайді</div>';
+    const nseg=document.createElement("div"); nseg.className="seg";
+    [["showKicker","Кікер"],["showRule","Лінія"],["showHandle","Хендл"]].forEach(([key,lbl])=>{
+      const b=document.createElement("button"); b.textContent=lbl;
+      if(s[key]!==false) b.classList.add("on");
+      b.onclick=()=>{ s[key]=(s[key]===false); renderSlides(); schedulePreview(); };
+      nseg.appendChild(b);});
+    nm.appendChild(nseg);
+    nm.insertAdjacentHTML("beforeend",
+      '<div style="font-size:11px;color:var(--muted);margin-top:6px">Підсвічене&nbsp;= показано. Клікни, щоб&nbsp;прибрати зайве. Кікер&nbsp;і&nbsp;хендл беруться з&nbsp;полів «Кікер»/«Хендл» угорі.</div>');
+    card.appendChild(nm);
+
+    // --- ТЕКСТ: вирівнювання + позиція (синхрон із перетягуванням на прев'ю) ---
+    const tx=document.createElement("div"); tx.className="sub";
+    tx.innerHTML='<div class="cap">Текст — вирівнювання та позиція</div>';
+    const aseg=document.createElement("div"); aseg.className="seg";
+    [["left","⇤ ліво"],["center","⇔ центр"],["right","право ⇥"],["justify","≡ ширина"]].forEach(([v,t])=>{
+      const b=document.createElement("button"); b.textContent=t;
+      if((s.textAlign||"center")===v) b.classList.add("on");
+      b.onclick=()=>{s.textAlign=v;renderSlides();schedulePreview();};
+      aseg.appendChild(b);});
+    tx.appendChild(aseg);
+    slider(tx,"Текст ↔",s,"textX",-500,500,1);
+    slider(tx,"Текст ↕",s,"textY",-500,500,1);
+    card.appendChild(tx);
+
+    // --- ПЛАШКА під текстом (читабельність поверх «складного» фото) ---
+    const pl=document.createElement("div"); pl.className="sub";
+    pl.innerHTML='<div class="cap">Плашка під текстом</div>';
+    const pseg=document.createElement("div"); pseg.className="seg";
+    [["none","Немає"],["dark","Темна"],["light","Світла"],["blur","Розмиття"]].forEach(([v,t])=>{
+      const b=document.createElement("button"); b.textContent=t;
+      if((s.plate||"none")===v) b.classList.add("on");
+      b.onclick=()=>{ s.plate=v; if(s.plateOpacity==null) s.plateOpacity=0.5;
+        renderSlides(); schedulePreview(); };
+      pseg.appendChild(b);});
+    pl.appendChild(pseg);
+    if((s.plate||"none")!=="none") slider(pl,"Щільність",s,"plateOpacity",0.15,0.9,0.05);
+    card.appendChild(pl);
+
+    // --- ТЛО ---
+    const bg=document.createElement("div"); bg.className="sub";
+    bg.innerHTML='<div class="cap">Тло</div>';
+    if(HAS_PHOTO[s.type]){
+      const seg=document.createElement("div");seg.className="seg";
+      [["photo","Фото"],["color","Колір"]].forEach(([v,t])=>{
+        const b=document.createElement("button");b.textContent=t;
+        if(s.bgMode===v)b.classList.add("on");
+        b.onclick=()=>{s.bgMode=v;renderSlides();schedulePreview();};
+        seg.appendChild(b);});
+      bg.appendChild(seg);
+    }
+    if(!HAS_PHOTO[s.type] || s.bgMode==="color"){
+      const wrap=document.createElement("div");wrap.className="row";wrap.style.marginTop="10px";
+      const c=document.createElement("input");c.type="color";
+      c.value=s.bgColor||styleCardBg(s.type);   // тло за палітрою стилю, поки не змінили вручну
+      c.oninput=()=>{s.bgColor=c.value;schedulePreview();};
+      const lab=document.createElement("span");lab.style.fontSize="12px";lab.style.color="var(--muted)";
+      lab.textContent="код кольору тла";
+      wrap.append(c,lab);bg.appendChild(wrap);
+    }
+    if(HAS_PHOTO[s.type] && s.bgMode==="photo"){
+      const wrap=document.createElement("div");wrap.className="thumbwrap";
+      const img=document.createElement("img");img.className="thumb";
+      if(s.photo) img.src="/file?path="+encodeURIComponent(s.photo);
+      const name=document.createElement("div");name.className="photoname";
+      name.textContent=s.photo? s.photo.split("/").pop() : "не вибрано";
+      const pick=document.createElement("input");pick.type="file";pick.accept="image/*";pick.style.display="none";
+      pick.onchange=async()=>{ const f=pick.files[0]; if(!f)return; status("Завантажую фото…");
+        s.photo=await uploadFile(f); status("Фото додано"); renderSlides(); schedulePreview(); };
+      wrap.append(img,name,mkMini("Вибрати…",()=>pick.click()),pick);
+      bg.appendChild(wrap);
+      // кроп фону: рух у будь-який бік (px), масштаб, поворот
+      const crop=document.createElement("div");crop.className="crop";
+      slider(crop,"Зсув ↔",s,"posX",-500,500,1);
+      slider(crop,"Зсув ↕",s,"posY",-500,500,1);
+      slider(crop,"Масштаб",s,"scale",1,3,0.05);
+      slider(crop,"Поворот",s,"rotate",-180,180,1);
+      bg.appendChild(crop);
+    }
+    // текстура тла (працює і на кольорі, і на фото)
+    const tlab=document.createElement("div");tlab.className="cap";
+    tlab.style.marginTop="12px";tlab.textContent="Текстура тла";
+    bg.appendChild(tlab);
+    const trow=document.createElement("div");trow.className="addrow";
+    [["","Немає"],["kraft","Крафт"],["cream","Крем"],["glaze","Глазур"],["coffee","Кава"],
+     ["chocolate","Шоколад"],["matcha","Матча"],["linen","Льон"],["flower","Квітка"],["leaf","Листя"],
+     ["grain","Зерно"],["dots","Крапки"],["grid","Сітка"],["diagonal","Діагональ"],["glow","Сяйво"]].forEach(([v,t])=>{
+      const b=document.createElement("button");b.className="btn ghost mini";b.textContent=t;
+      if((s.texture||"")===v){b.style.borderColor="var(--accent)";b.style.background="rgba(255,210,14,.12)";}
+      b.onclick=()=>{ s.texture=v;
+        s.textureOp = v ? (IMG_TEX.has(v)?1:0.5) : undefined;   // дефолт інтенсивності
+        renderSlides(); schedulePreview(); };
+      trow.appendChild(b);});
+    bg.appendChild(trow);
+    // інтенсивність (прозорість) текстури — видно і текстуру, і фото під нею
+    if(s.texture){
+      if(s.textureOp==null) s.textureOp = IMG_TEX.has(s.texture)?1:0.5;
+      slider(bg,"Інтенсивність текстури",s,"textureOp",0,1,0.05);
+    }
+    // затемнення всього тла/фото
+    slider(bg,"Затемнення тла",s,"dim",0,0.85,0.05);
+    card.appendChild(bg);
+
+    // --- ОБ'ЄКТ ЗВЕРХУ (готовий PNG без тла, над текстом) ---
+    const ov=document.createElement("div"); ov.className="sub";
+    ov.innerHTML='<div class="cap">Об\'єкт зверху (над текстом)</div>';
+    const orow=document.createElement("div");orow.className="addrow";
+    const pick2=document.createElement("input");pick2.type="file";pick2.accept="image/*";pick2.style.display="none";
+    pick2.onchange=async()=>{const f=pick2.files[0];if(!f)return;status("Завантажую…");
+      s.cutout=await uploadFile(f);status("Додано верхній шар");renderSlides();schedulePreview();};
+    orow.append(mkMini("+ додати об'єкт / PNG",()=>pick2.click()),pick2);
+    ov.appendChild(orow);
+    if(s.cutout){
+      const wrap=document.createElement("div");wrap.className="thumbwrap";
+      const img=document.createElement("img");img.className="thumb";
+      img.src="/file?path="+encodeURIComponent(s.cutout);
+      const name=document.createElement("div");name.className="photoname";name.textContent="верхній шар активний";
+      const del=mkMini("✕ прибрати",()=>{s.cutout="";renderSlides();schedulePreview();});
+      del.style.color="var(--danger)";
+      wrap.append(img,name,del);ov.appendChild(wrap);
+      const crop=document.createElement("div");crop.className="crop";
+      slider(crop,"Зсув ↔",s,"cutX",0,100,1);
+      slider(crop,"Зсув ↕",s,"cutY",0,100,1);
+      slider(crop,"Масштаб",s,"cutScale",0.3,2,0.05);
+      slider(crop,"Поворот",s,"cutRotate",-180,180,1);
+      const hint=document.createElement("div");hint.style.cssText="font-size:11px;color:var(--muted);margin-top:6px";
+      hint.textContent="На прев'ю: тягни об'єкт мишею, колесо — масштаб.";
+      crop.appendChild(hint);
+      ov.appendChild(crop);
+    }
+    card.appendChild(ov);
+
+    slidesEl.appendChild(card);
+  });
+}
+
+let pvTimer;
+function schedulePreview(){clearTimeout(pvTimer);pvTimer=setTimeout(renderPreview,350);}
+
+function scalePv(pv,f){ const scale=pv.clientWidth/1080; const h=FMT_H[fmt()];
+  pv.style.aspectRatio=ASPECT[fmt()]; f.style.width="1080px"; f.style.height=h+"px";
+  f.style.transform=`scale(${scale})`; }
+
+async function renderPreview(){
+  if(!slides.length){previewsEl.innerHTML='<div class="empty">Додай слайди — і&nbsp;вони&nbsp;з\'являться тут.</div>';return;}
+  let data;
+  try{
+    data = await (await fetch("/api/preview",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({theme:BASE_THEME,slides,overrides:overrides()})})).json();
+  }catch(e){status("Помилка прев'ю: "+e,true);return;}
+  if(data.error){status("Помилка: "+data.error,true);return;}
+  const scroller=document.querySelector('.preview');      // зберігаємо позицію прокрутки прев'ю
+  const keepScroll=scroller?scroller.scrollTop:0;
+  previewsEl.innerHTML="";
+  data.htmls.forEach((html,i)=>{
+    const pv=document.createElement("div");pv.className="pv";
+    pv.innerHTML=`<div class="tag">${i+1} · ${({cover:"обкладинка",blank:"пустий"})[slides[i].type]||"слайд"}</div>`;
+    const f=document.createElement("iframe");f.srcdoc=html;pv.appendChild(f);
+    previewsEl.appendChild(pv);
+    const s=slides[i];
+    f.onload=()=>{ scalePv(pv,f); attachInteractions(pv,f,s); };
+    requestAnimationFrame(()=>scalePv(pv,f));
+  });
+  // повертаємо прокрутку на те саме місце (прев'ю не «стрибає» під час правок)
+  requestAnimationFrame(()=>{ if(scroller) scroller.scrollTop=keepScroll; });
+}
+
+let rsTimer;
+function renderSlidesDebounced(){clearTimeout(rsTimer);rsTimer=setTimeout(renderSlides,220);}
+
+function applyTextShift(doc,s){
+  const w=doc.querySelector('.wrap');
+  if(w) w.style.transform=`translate(${s.textX||0}px,${s.textY||0}px)`;
+}
+// напрямні центру для «магніту» (малюємо всередині iframe під час перетягування)
+function showGuides(doc){ if(doc.__g)return;
+  const mk=css=>{const d=doc.createElement('div');
+    d.style.cssText='position:absolute;z-index:9;pointer-events:none;background:rgba(0,149,246,.4);'+css;
+    doc.body.appendChild(d);return d;};
+  doc.__g=[ mk('left:50%;top:0;width:1px;height:100%;margin-left:-.5px'),
+            mk('top:50%;left:0;height:1px;width:100%;margin-top:-.5px') ];
+}
+function markGuides(doc,sx,sy){ if(!doc.__g)return; const[v,h]=doc.__g;
+  v.style.background=sx?'#FFD20E':'rgba(0,149,246,.4)'; v.style.width=sx?'2px':'1px';
+  h.style.background=sy?'#FFD20E':'rgba(0,149,246,.4)'; h.style.height=sy?'2px':'1px'; }
+function hideGuides(doc){ if(doc.__g){doc.__g.forEach(g=>g.remove());doc.__g=null;} }
+
+// пряме керування мишею всередині прев'ю (iframe у нас same-origin)
+function attachInteractions(pv,f,s){
+  const doc=f.contentDocument; if(!doc) return;
+  const sc=()=>pv.clientWidth/1080;      // масштаб прев'ю
+  const H=FMT_H[fmt()];
+  // ── ФОНОВЕ ФОТО: тягнути у будь-який бік = зсув, колесо = зум ──
+  const photo=doc.querySelector('.photo');
+  const photoT=()=>'translate(-50%,-50%) translate('+(s.posX||0)+'px,'+(s.posY||0)+'px) scale('+(s.scale||1)+') rotate('+(s.rotate||0)+'deg)';
+  if(photo && s.bgMode==='photo' && s.photo){
+    photo.style.cursor='grab';
+    let drag=false,px,py,ox,oy;
+    photo.addEventListener('mousedown',e=>{drag=true;photo.style.cursor='grabbing';
+      px=e.clientX;py=e.clientY;ox=+(s.posX||0);oy=+(s.posY||0);e.preventDefault();});
+    doc.addEventListener('mousemove',e=>{if(!drag)return;const k=sc();
+      // межа зсуву = наявний «запас» фото (щоб перетягуванням не оголити край)
+      const mx=1080*(1.16*(s.scale||1)-1)/2, my=H*(1.16*(s.scale||1)-1)/2;
+      s.posX=Math.round(clamp(ox+(e.clientX-px)/k,-mx,mx));
+      s.posY=Math.round(clamp(oy+(e.clientY-py)/k,-my,my));
+      photo.style.transform=photoT();});
+    doc.addEventListener('mouseup',()=>{if(drag){drag=false;photo.style.cursor='grab';renderSlides();}});
+    doc.addEventListener('wheel',e=>{ e.preventDefault();
+      s.scale=clamp(+s.scale+(e.deltaY<0?0.04:-0.04),1,3);
+      photo.style.transform=photoT(); renderSlidesDebounced(); },{passive:false});
+  }
+  // ── ОБ'ЄКТ ЗВЕРХУ (готовий PNG): тягнути = зсув, колесо = масштаб ──
+  const cut=doc.querySelector('.cutout');
+  if(cut && s.cutout){
+    cut.style.pointerEvents='auto'; cut.style.cursor='grab';
+    let drag=false,px,py,ox,oy;
+    cut.addEventListener('mousedown',e=>{drag=true;cut.style.cursor='grabbing';
+      px=e.clientX;py=e.clientY;ox=+s.cutX;oy=+s.cutY;e.preventDefault();e.stopPropagation();});
+    doc.addEventListener('mousemove',e=>{if(!drag)return;const k=sc();
+      s.cutX=clamp(ox-(e.clientX-px)/(1080*k)*100,0,100);
+      s.cutY=clamp(oy-(e.clientY-py)/(H*k)*100,0,100);
+      cut.style.objectPosition=s.cutX+'% '+s.cutY+'%';});
+    doc.addEventListener('mouseup',()=>{if(drag){drag=false;cut.style.cursor='grab';renderSlides();}});
+    cut.addEventListener('wheel',e=>{ e.preventDefault();e.stopPropagation();
+      s.cutScale=clamp(+s.cutScale+(e.deltaY<0?0.04:-0.04),0.3,2);
+      cut.style.transform='scale('+s.cutScale+') rotate('+(s.cutRotate||0)+'deg)'; renderSlidesDebounced(); },{passive:false});
+  }
+  // ── ТЕКСТ: тягнути мишею ──
+  const tel=doc.querySelector('.wrap');
+  if(tel){
+    tel.style.cursor='move';
+    let drag=false,px,py,ox,oy;
+    tel.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py=e.clientY;
+      ox=+(s.textX||0);oy=+(s.textY||0);e.preventDefault();e.stopPropagation();showGuides(doc);});
+    doc.addEventListener('mousemove',e=>{if(!drag)return;const k=sc();
+      s.textX=Math.round(ox+(e.clientX-px)/k);
+      s.textY=Math.round(oy+(e.clientY-py)/k);
+      applyTextShift(doc,s);
+      // магніт: центр текстового блоку → центр картки
+      const card=doc.querySelector('.card'), r=tel.getBoundingClientRect();
+      const cx=card.clientWidth/2, cy=card.clientHeight/2, bx=r.left+r.width/2, by=r.top+r.height/2;
+      const SNAP=16; let sx=false,sy=false;
+      if(Math.abs(cx-bx)<SNAP){s.textX=Math.round(s.textX+(cx-bx));sx=true;}
+      if(Math.abs(cy-by)<SNAP){s.textY=Math.round(s.textY+(cy-by));sy=true;}
+      if(sx||sy) applyTextShift(doc,s);
+      markGuides(doc,sx,sy);});
+    doc.addEventListener('mouseup',()=>{ if(drag){drag=false;hideGuides(doc);renderSlides();} });
+  }
+}
+window.addEventListener("resize",()=>{
+  document.querySelectorAll(".pv").forEach(pv=>{const f=pv.querySelector("iframe");if(f)scalePv(pv,f);});
+});
+
+// «Тема (бренд)» — вільний підпис, не впливає на рендер
+$("#format").onchange=schedulePreview;
+["accent","kicker","handle"].forEach(id=>$("#"+id).oninput=schedulePreview);
+document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>addSlide(b.dataset.add));
+$("#collapseAll").onclick=()=>{ slides.forEach(s=>s._open=false); renderSlides(); };
+$("#expandAll").onclick=()=>{ slides.forEach(s=>s._open=true); renderSlides(); };
+
+// майстер ключа Gemini: зберігаємо локально, відкриваємо AI Studio
+(function(){ const k=$("#geminiKey"); if(k){ k.value=localStorage.getItem("geminiKey")||"";
+  k.oninput=()=>localStorage.setItem("geminiKey",k.value.trim());
+  if(k.value) $("#keywiz").open=true; }
+  const g=$("#getKey"); if(g) g.onclick=()=>window.open("https://aistudio.google.com/apikey","_blank"); })();
+
+$("#split").onclick=async()=>{
+  const text=$("#bigtext").value.trim();
+  if(!text){status("Встав текст для розкидання",true);return;}
+  const uiKey=($("#geminiKey")?.value||"").trim();
+  if(!hasKey && !uiKey){ if($("#keywiz")) $("#keywiz").open=true;
+    status("Потрібен ключ Gemini — натисни «Отримати ключ» нижче",true);return;}
+  const btn=$("#split");btn.disabled=true;btn.textContent="Думаю…";
+  try{
+    const cnt=parseInt($("#splitcount").value)||null;
+    const res=await (await fetch("/api/split-text",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({text,count:cnt,key:uiKey||undefined})})).json();
+    if(res.error){status("Помилка: "+res.error,true);}
+    else{ slides.splice(1);            // лишаємо тільки перший слайд (обкладинку)
+      res.slides.forEach(sl=>{ const s={type:"text",bgMode:"color",bgColor:"",
+        photo:"",posX:0,posY:0,scale:1,rotate:0,cutout:"",cutX:50,cutY:50,cutScale:1,textX:0,textY:0,textAlign:"center",
+        plate:"none",plateOpacity:0.5,texture:"",dim:0,cutRotate:0,_open:false,   // розкидані слайди — згорнуті
+        "ТЕЗА":sl["ТЕЗА"]||"","ТЕКСТ":sl["ТЕКСТ"]||""}; slides.push(s); });
+      renderSlides(); schedulePreview();
+      status("Розкидано на "+res.slides.length+" слайдів"); }
+  }catch(e){status("Помилка: "+e,true);}
+  btn.disabled=false;btn.textContent="Розкидати";
+};
+
+$("#export").onclick=async()=>{
+  if(!slides.length){status("Немає слайдів для експорту",true);return;}
+  const btn=$("#export");btn.disabled=true;btn.textContent="Рендерю…";
+  try{
+    const res=await (await fetch("/api/export",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({theme:BASE_THEME,slides,overrides:overrides()})})).json();
+    if(res.error) status("Помилка експорту: "+res.error,true);
+    else{ status("Готово: "+res.pngs.length+" PNG → out/. Відкриваю папку…");
+      fetch("/api/open",{method:"POST"}); }
+  }catch(e){status("Помилка: "+e,true);}
+  btn.disabled=false;btn.textContent="Експорт PNG";
+};
+$("#openf").onclick=()=>fetch("/api/open",{method:"POST"});
+
+// ── ЗБЕРЕЖЕННЯ / ЗАВАНТАЖЕННЯ ПРОЄКТУ (JSON, локально в браузері) ──
+function saveProject(){
+  const v=id=>$("#"+id)?.value, ck=id=>!!$("#"+id)?.checked;
+  const proj={ v:1, brand:v("theme"), format:fmt(),
+    accent:v("accent"), kicker:v("kicker"), handle:v("handle"),
+    fonts:{ fd:{name:v("fdName"),url:v("fdUrl"),weight:v("fdWeight"),italic:ck("fdItalic")},
+            fb:{name:v("fbName"),url:v("fbUrl"),weight:v("fbWeight"),italic:ck("fbItalic")},
+            fa:{name:v("faName"),url:v("faUrl"),color:v("faColor"),weight:v("faWeight"),italic:ck("faItalic")} },
+    styleColors, slides };
+  const blob=new Blob([JSON.stringify(proj,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="karusel-"+String(v("theme")||"proekt").replace(/[^a-zа-яіїєґ0-9_-]+/gi,"_")+".json";
+  a.click(); URL.revokeObjectURL(a.href); status("Проєкт збережено у файл");
+}
+async function loadProject(file){
+  try{
+    const p=JSON.parse(await file.text());
+    const set=(id,val)=>{ const el=$("#"+id); if(el && val!=null) el.value=val; };
+    const setc=(id,val)=>{ const el=$("#"+id); if(el) el.checked=!!val; };
+    set("theme",p.brand); set("format",p.format); set("accent",p.accent);
+    set("kicker",p.kicker); set("handle",p.handle);
+    const f=p.fonts||{};
+    [["fd",f.fd],["fb",f.fb],["fa",f.fa]].forEach(([slot,pre])=>{ if(!pre)return;
+      set(slot+"Name",pre.name); set(slot+"Url",pre.url);
+      if(pre.weight!=null) set(slot+"Weight",pre.weight); setc(slot+"Italic",pre.italic);
+      if(slot==="fa"&&pre.color) set("faColor",pre.color); });
+    styleColors = p.styleColors||null;
+    slides = Array.isArray(p.slides)? p.slides : [];
+    renderSlides(); schedulePreview(); status("Проєкт завантажено: "+slides.length+" слайдів");
+  }catch(e){ status("Не вдалося прочитати файл: "+e,true); }
+}
+$("#saveproj").onclick=saveProject;
+$("#loadproj").onclick=()=>$("#loadprojInput").click();
+$("#loadprojInput").onchange=()=>{ const f=$("#loadprojInput").files[0]; if(f) loadProject(f); $("#loadprojInput").value=""; };
+
+(async()=>{ await loadConfig(); await loadThemes(); initFonts();
+  addSlide("cover"); addSlide("text");
+  // приклад-текст за замовчуванням — щоб одразу було видно, як виглядатиме текст на слайді
+  slides[0]["ЗАГ_1"]="Введи сюди"; slides[0]["ПІДЗАГ"]="свій текст";
+  slides[1]["ТЕЗА"]="Введи тезу"; slides[1]["ТЕКСТ"]="Введи сюди свій текст";
+  renderSlides(); schedulePreview(); })();
+</script>
+</body>
+</html>

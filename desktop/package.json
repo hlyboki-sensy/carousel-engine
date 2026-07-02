@@ -1,0 +1,29 @@
+{
+  "name": "karusel-panel-desktop",
+  "version": "0.1.0",
+  "description": "Карусель-панель (Глибокі сенси) — десктоп-обгортка. Відкриває конструктор каруселей як застосунок.",
+  "main": "main.js",
+  "author": "Hlyboki_sensy",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "studio.hlybokisensy.karusel",
+    "productName": "Карусель-панель",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "package.json"],
+    "extraResources": [
+      { "from": "..", "to": "engine",
+        "filter": ["**/*", "!desktop/**", "!out/**", "!uploads/**", "!graphify-out/**", "!.venv/**"] }
+    ],
+    "mac": { "target": "dmg", "category": "public.app-category.graphics-design" },
+    "win": { "target": "nsis" }
+  }
+}

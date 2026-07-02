@@ -1,0 +1,19 @@
+# Фото користувача/клієнтів — НЕ на GitHub (приватність + вага)
+uploads/
+
+# Згенеровані результати
+out/
+
+# Службове / кеш / залежності
+.venv/
+__pycache__/
+*.pyc
+graphify-out/
+desktop/node_modules/
+
+# Тимчасові файли панелі
+content/_panel.json
+themes/_panel.json
+
+# macOS
+.DS_Store

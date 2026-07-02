@@ -1,0 +1,19 @@
+{
+  "name": "noir_grotesk",
+  "format": { "w": 1080, "h": 1440 },
+  "fonts": {
+    "display": "\"Avenir Next\",\"Helvetica Neue\",sans-serif",
+    "body": "\"Avenir Next\",Arial,sans-serif"
+  },
+  "colors": {
+    "accent": "#E2533B",
+    "photoBg": "#0e0e10",
+    "lightBg": "#ece7df",
+    "coverBg": "#1a1a1e",
+    "textOnDark": "#f5f2ec",
+    "textOnLight": "#1a1a1e",
+    "bodyOnLight": "#4a4a52"
+  },
+  "kicker": "роздуми маркетолога",
+  "handle": "@hlyboki_sensy"
+}

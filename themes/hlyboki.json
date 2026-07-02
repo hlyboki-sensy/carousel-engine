@@ -1,0 +1,20 @@
+{
+  "name": "hlyboki_sensy",
+  "format": { "w": 1080, "h": 1440 },
+  "fonts": {
+    "display": "\"Didot\",\"Playfair Display\",\"Bodoni 72\",Georgia,serif",
+    "body": "\"Helvetica Neue\",Arial,sans-serif",
+    "links": ["https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"]
+  },
+  "colors": {
+    "accent": "#FFD20E",
+    "photoBg": "#11151a",
+    "lightBg": "#d7d0c5",
+    "coverBg": "#cfc9c2",
+    "textOnDark": "#f4efe7",
+    "textOnLight": "#2b211b",
+    "bodyOnLight": "#473b31"
+  },
+  "kicker": "роздуми маркетолога",
+  "handle": "@hlyboki_sensy"
+}

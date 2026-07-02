@@ -52,9 +52,14 @@ function waitForServer(done, tries = 0) {
 // Малюємо офскрін-вікном, зберігаємо в user-writable теку, відкриваємо у Finder.
 ipcMain.handle('karusel:export', async (_e, { htmls, w, h }) => {
   const rwin = new BrowserWindow({
-    show: false, width: w, height: h, useContentSize: true,
+    show: false, width: w, height: h,
     webPreferences: { offscreen: true, sandbox: false }
   });
+  // Знімок через протокол DevTools: розмір полотна фіксується НА РІВНІ ДВИГУНА
+  // (Emulation.setDeviceMetricsOverride) незалежно від екрана/DPI/OS — тому кадр
+  // виходить однаковий на будь-якому Маку (не «їде» й не розтягується).
+  const dbg = rwin.webContents.debugger;
+  try { dbg.attach('1.3'); } catch (e) {}
   const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
   const dir = path.join(os.homedir(), 'Downloads', 'Карусель-експорт', stamp);
   fs.mkdirSync(dir, { recursive: true });
@@ -66,25 +71,16 @@ ipcMain.handle('karusel:export', async (_e, { htmls, w, h }) => {
         'Promise.all([document.fonts.ready, ...[...document.images].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))])' +
         '.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))'
       ).catch(() => {});
-      // ФІКСУЄМО полотно рендеру ТОЧНО w×h — ПІСЛЯ завантаження (виклик ДО loadURL → SIGSEGV).
-      // Без цього на різних Маках capturePage брав різний розмір → текст «їхав».
-      try {
-        rwin.webContents.enableDeviceEmulation({
-          screenPosition: 'desktop', screenSize: { width: w, height: h },
-          viewSize: { width: w, height: h }, viewPosition: { x: 0, y: 0 },
-          deviceScaleFactor: 1, scale: 1
-        });
-      } catch (e) {}
-      await new Promise(r => setTimeout(r, 300));
-      let img = await rwin.webContents.capturePage();
-      const sz = img.getSize();
-      // ключовий фікс: перевіряємо І ширину, І висоту (раніше лише ширину → на деяких Маках кадр «їхав»)
-      if (sz.width !== w || sz.height !== h) img = img.resize({ width: w, height: h, quality: 'best' });
+      await dbg.sendCommand('Emulation.setDeviceMetricsOverride',
+        { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      await new Promise(r => setTimeout(r, 350));
+      const shot = await dbg.sendCommand('Page.captureScreenshot',
+        { clip: { x: 0, y: 0, width: w, height: h, scale: 1 }, format: 'png', captureBeyondViewport: true });
       const p = path.join(dir, String(i + 1).padStart(2, '0') + '.png');
-      fs.writeFileSync(p, img.toPNG());
+      fs.writeFileSync(p, Buffer.from(shot.data, 'base64'));
       paths.push(p);
     }
-  } finally { rwin.destroy(); }
+  } finally { try { dbg.detach(); } catch (e) {} rwin.destroy(); }
   if (paths.length) shell.showItemInFolder(paths[0]);
   return { dir, count: paths.length };
 });

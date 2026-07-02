@@ -63,11 +63,23 @@ ipcMain.handle('karusel:export', async (_e, { htmls, w, h }) => {
     for (let i = 0; i < htmls.length; i++) {
       await rwin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(htmls[i]));
       await rwin.webContents.executeJavaScript(
-        'Promise.all([document.fonts.ready, ...[...document.images].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))]).then(()=>true)'
+        'Promise.all([document.fonts.ready, ...[...document.images].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))])' +
+        '.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))'
       ).catch(() => {});
-      await new Promise(r => setTimeout(r, 250));
+      // ФІКСУЄМО полотно рендеру ТОЧНО w×h — ПІСЛЯ завантаження (виклик ДО loadURL → SIGSEGV).
+      // Без цього на різних Маках capturePage брав різний розмір → текст «їхав».
+      try {
+        rwin.webContents.enableDeviceEmulation({
+          screenPosition: 'desktop', screenSize: { width: w, height: h },
+          viewSize: { width: w, height: h }, viewPosition: { x: 0, y: 0 },
+          deviceScaleFactor: 1, scale: 1
+        });
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 300));
       let img = await rwin.webContents.capturePage();
-      if (img.getSize().width !== w) img = img.resize({ width: w, height: h, quality: 'best' });
+      const sz = img.getSize();
+      // ключовий фікс: перевіряємо І ширину, І висоту (раніше лише ширину → на деяких Маках кадр «їхав»)
+      if (sz.width !== w || sz.height !== h) img = img.resize({ width: w, height: h, quality: 'best' });
       const p = path.join(dir, String(i + 1).padStart(2, '0') + '.png');
       fs.writeFileSync(p, img.toPNG());
       paths.push(p);

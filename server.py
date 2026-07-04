@@ -376,11 +376,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"htmls": htmls})
             if u.path == "/api/upload":
                 d = self._read_json()
-                UPLOADS.mkdir(exist_ok=True)
+                UPLOADS.mkdir(parents=True, exist_ok=True)
                 name = Path(d["name"]).name
                 raw = d["dataUrl"].split(",", 1)[-1]
                 dest = UPLOADS / name
                 dest.write_bytes(base64.b64decode(raw))
+                # HEIC/HEIF (формат iPhone) → JPEG: Chromium рендерить heic ненадійно
+                # (дикий зум/крива орієнтація); sips заодно застосовує EXIF-орієнтацію.
+                if dest.suffix.lower() in (".heic", ".heif"):
+                    jpg = dest.with_suffix(".jpg")
+                    try:
+                        subprocess.run(["sips", "-s", "format", "jpeg", str(dest), "--out", str(jpg)],
+                                       check=True, capture_output=True)
+                        dest.unlink()          # прибираємо heic-оригінал
+                        dest = jpg
+                    except Exception:
+                        pass                   # не вдалось — лишаємо як є
                 return self._send(200, {"path": str(dest.resolve())})
             if u.path == "/api/cutout":
                 d = self._read_json()

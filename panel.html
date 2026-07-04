@@ -710,6 +710,14 @@ function renderSlides(){
         s.photo=await uploadFile(f); status("Фото додано"); renderSlides(); schedulePreview(); };
       wrap.append(img,name,mkMini("Вибрати…",()=>pick.click()),pick);
       bg.appendChild(wrap);
+      // режим фото: Заповнити (обрізає краї) / Вписати ціле (показує все фото, з полями)
+      const fitseg=document.createElement("div"); fitseg.className="seg"; fitseg.style.marginTop="10px";
+      [["cover","Заповнити"],["contain","Вписати ціле"]].forEach(([v,t])=>{
+        const b=document.createElement("button"); b.textContent=t;
+        if((s.photoFit||"cover")===v) b.classList.add("on");
+        b.onclick=()=>{ s.photoFit=v; renderSlides(); schedulePreview(); };
+        fitseg.appendChild(b);});
+      bg.appendChild(fitseg);
       // кроп фону: рух у будь-який бік (px), масштаб, поворот
       const crop=document.createElement("div");crop.className="crop";
       slider(crop,"Зсув ↔",s,"posX",-500,500,1);

@@ -265,7 +265,7 @@ def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
                  "posX", "posY", "scale", "rotate", "cutX", "cutY", "cutScale",
                  "textX", "textY", "textAlign", "plate", "plateOpacity", "texture", "_open",
                  "dim", "cutRotate", "textureOp",
-                 "showKicker", "showRule", "showHandle"):
+                 "showKicker", "showRule", "showHandle", "photoFit"):
             continue
         # html.escape ПЕРЕД розміткою: текст користувача не може впорснути теги (self-XSS),
         # а «<», «&» більше не ламають верстку. Акцентні *зірочки* лишаються робочими.
@@ -298,6 +298,11 @@ def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
     m["PHOTO"] = photo_resolver(photo) if show_photo else ""
     m["PHOTO_DISPLAY"] = "block" if show_photo else "none"
     m["GRAD_DISPLAY"] = "block" if show_photo else "none"
+    # режим вписування фото: cover (заповнити картку, обрізати краї) — дефолт;
+    # contain (вписати ЦІЛЕ фото, з полями тла) — щоб не різало обличчя на селфі.
+    fit = slide.get("photoFit", "cover")
+    m["PHOTO_FIT"] = "contain" if fit == "contain" else "cover"
+    m["PHOTO_DIM"] = "100%" if fit == "contain" else "116%"
     # фон: зсув у px (translate, за замовч. 0 — центр), масштаб і поворот
     m["POS_X"] = f"{_num(slide.get('posX'), 0):g}"
     m["POS_Y"] = f"{_num(slide.get('posY'), 0):g}"

@@ -23,7 +23,7 @@
   .card{ position:relative; width:{{W}}px; height:{{H}}px; overflow:hidden;
     background:var(--card-bg); font-family:var(--font-display);
     display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .photo{ position:absolute; top:50%; left:50%; width:116%; height:116%; object-fit:cover; object-position:center;
+  .photo{ position:absolute; top:50%; left:50%; width:{{PHOTO_DIM}}; height:{{PHOTO_DIM}}; object-fit:{{PHOTO_FIT}}; object-position:center;
     transform:translate(-50%,-50%) translate({{POS_X}}px,{{POS_Y}}px) scale({{SCALE}}) rotate({{ROTATE}}deg); transform-origin:center;
     display:{{PHOTO_DISPLAY}}; filter:saturate(0.98); z-index:0; }
   .grad{ position:absolute; inset:0; z-index:1; pointer-events:none; display:{{GRAD_DISPLAY}};

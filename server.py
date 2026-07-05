@@ -392,6 +392,15 @@ class Handler(BaseHTTPRequestHandler):
                         dest = jpg
                     except Exception:
                         pass                   # не вдалось — лишаємо як є
+                # Display P3 (iPhone) → sRGB: інакше Chromium ПЕРЕСВІЧУЄ кольори фото
+                if dest.suffix.lower() in (".jpg", ".jpeg", ".png"):
+                    srgb = "/System/Library/ColorSync/Profiles/sRGB Profile.icc"
+                    try:
+                        if os.path.exists(srgb):
+                            subprocess.run(["sips", "-m", srgb, str(dest)],
+                                           check=True, capture_output=True)
+                    except Exception:
+                        pass
                 return self._send(200, {"path": str(dest.resolve())})
             if u.path == "/api/cutout":
                 d = self._read_json()

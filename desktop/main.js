@@ -66,7 +66,10 @@ ipcMain.handle('karusel:export', async (_e, { htmls, w, h }) => {
   const paths = [];
   try {
     for (let i = 0; i < htmls.length; i++) {
-      await rwin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(htmls[i]));
+      // фото/шрифти/текстури приходять як ВІДНОСНІ /file,/uploads,/textures — у прев'ю (http)
+      // працюють, а в data:-URL експорту нікуди не ведуть → фото зникало. Робимо їх абсолютними.
+      const html = htmls[i].replace(/(["'(])\/(file\?|uploads\/|textures\/)/g, '$1' + URL + '/$2');
+      await rwin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
       await rwin.webContents.executeJavaScript(
         'Promise.all([document.fonts.ready, ...[...document.images].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))])' +
         '.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))'

@@ -13,6 +13,7 @@ out/_size.txt зберігає розмір формату «W H» для render
 
 «Різні шрифти, різні кольори» = просто інша тема. Той самий контент.
 """
+import base64
 import html
 import json
 import os
@@ -82,7 +83,48 @@ TEXTURES = {
 
 SERIF_FALLBACK = '"Didot","Playfair Display","Bodoni 72","Hoefler Text",Georgia,serif'
 SANS_FALLBACK = '"Helvetica Neue",Arial,sans-serif'
+# рукописні (скрипт) гарнітури: резерв має бути ТЕЖ рукописним, не serif — інакше
+# літера, якої нема в основному скрипті, «вилазить» серифом посеред тексту
+CURSIVE_FALLBACK = '"Snell Roundhand","Savoye LET","Bradley Hand",cursive'
+SCRIPT_FONTS = {"comforter brush", "caveat", "noteworthy", "bradley hand", "comforter"}
 _FONT_EXT = {"woff2": "woff2", "woff": "woff", "ttf": "truetype", "otf": "opentype"}
+
+# ── Comforter Brush (скрипт стилю «Оксамит») ────────────────────────────────
+# Google-версія Comforter Brush НЕ містить кирилиці → українські літери падали на
+# serif-резерв. Тому вбудовуємо локальні woff2 (Latin + Cyrillic) як data-URI —
+# працює однаково в прев'ю (srcdoc), у file://-експорті та в data:-URL застосунку,
+# без окремого маршруту сервера. unicode-range як у мобільній версії.
+_FONTS_DIR = ROOT / "fonts"
+_COMFORTER_URANGE = {
+    "comforter-cyr.woff2": "U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116",
+    "comforter-lat.woff2": ("U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,"
+                            "U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,"
+                            "U+2193,U+2212,U+2215,U+FEFF,U+FFFD"),
+}
+_COMFORTER_FACES_CACHE = None
+
+
+def comforter_faces():
+    """@font-face-и вбудованого Comforter Brush (data-URI). Кешується (base64 важкий)."""
+    global _COMFORTER_FACES_CACHE
+    if _COMFORTER_FACES_CACHE is None:
+        css = ""
+        for fname, urange in _COMFORTER_URANGE.items():
+            p = _FONTS_DIR / fname
+            if not p.exists():
+                continue
+            b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+            src = f"src:url('data:font/woff2;base64,{b64}') format('woff2');"
+            # Оголошуємо і normal, і italic на ТОЙ САМИЙ файл: композиція «Рвана» просить
+            # font-style:italic, а Comforter Brush має лише пряме накреслення. Без italic-face
+            # деякі браузери (Safari) «вибивають» на резервний шрифт — тож даємо italic явно
+            # (браузер сам додасть легкий нахил поверх рукописних гліфів).
+            for style in ("normal", "italic"):
+                css += (f"@font-face{{font-family:'Comforter Brush';font-style:{style};"
+                        f"font-weight:400;font-display:swap;{src}"
+                        f"unicode-range:{urange};}}")
+        _COMFORTER_FACES_CACHE = css
+    return _COMFORTER_FACES_CACHE
 
 
 def load(p):
@@ -119,8 +161,11 @@ def font_head(theme):
         ext = url.split("?")[0].lower().rsplit(".", 1)[-1]
         faces.append(f"@font-face{{font-family:'{fam}';src:url('{url}') "
                      f"format('{_FONT_EXT.get(ext, 'woff2')}');font-display:swap;}}")
-    if faces:
-        parts.append("<style>" + "".join(faces) + "</style>")
+    # вбудований Comforter Brush із кирилицею — якщо стиль його використовує
+    fam_blob = " ".join(str(f.get(k, "")) for k in ("display", "body", "accent")).lower()
+    embedded = comforter_faces() if "comforter brush" in fam_blob else ""
+    if embedded or faces:
+        parts.append("<style>" + embedded + "".join(faces) + "</style>")
     return "\n".join(parts)
 
 
@@ -151,11 +196,14 @@ def apply_overrides_to_theme(theme, ov):
         f = theme.setdefault("fonts", {})
         links = list(f.get("links", []) or [])
         faces = list(f.get("faces", []) or [])
-        for slot, fallback in (("display", SERIF_FALLBACK), ("body", SANS_FALLBACK),
-                               ("accent", SERIF_FALLBACK)):
+        for slot, base_fb in (("display", SERIF_FALLBACK), ("body", SANS_FALLBACK),
+                              ("accent", SERIF_FALLBACK)):
             spec = fonts.get(slot) or {}
             name, url = spec.get("name"), spec.get("url")
             if name:
+                # рукописний шрифт → рукописний резерв (не serif), щоб літера, якої нема
+                # в основному скрипті, не «вилазила» серифом
+                fallback = CURSIVE_FALLBACK if name.strip().lower() in SCRIPT_FONTS else base_fb
                 f[slot] = f'"{name}",{fallback}'
             if url:
                 (faces.append({"family": name or "", "url": url})
@@ -203,8 +251,10 @@ def theme_map(theme):
         # приглушений колір кікера/хендла на текстових слайдах (за замовч. — темний)
         "MUTED_ON_LIGHT": c.get("mutedOnLight", "rgba(60,48,38,0.5)"),
         "MUTED_ON_DARK": c.get("mutedOnDark", "rgba(244,239,231,0.82)"),
-        "KICKER": theme.get("kicker", ""),
-        "HANDLE": theme.get("handle", ""),
+        # escape ПЕРЕД вставкою в HTML: кікер/хендл — вільний ввід (self-XSS guard, і захист
+        # наперед, якщо колись з'явиться імпорт чужого проєкту)
+        "KICKER": html.escape(theme.get("kicker", "") or "", quote=False),
+        "HANDLE": html.escape(theme.get("handle", "") or "", quote=False),
     }
 
 
@@ -249,6 +299,56 @@ def _is_dark(hexcol):
         return False
 
 
+# пресети композиції обкладинки (клас на .card) — лише допустимі значення
+LAYOUTS = {"classic", "rvana", "script", "minimal"}
+
+# ── КОМПОЗИЦІЇ обкладинки (пресети розкладки заголовка) ──────────────────────
+# Вбудовується в <style> обкладинки під час збірки (клас {{LAYOUT}} на .card).
+# Специфічність .card.rvana .l1 перекриває базове .headline .l1. «Класика» = базовий CSS
+# (клас "classic" без правил). Розміри — у 1080-просторі. Шрифти беруться зі СТИЛЮ
+# (--font-body / --font-display) → зміна стилю змінює й композицію.
+COMPOSITION_CSS = """
+  /* докрутка (масштаб/поворот) — на .wrap разом із підзаголовком (див. WRAP_TRANSFORM у шаблоні) */
+  /* ліво/право/ширину плашки задає базовий WRAP_POS (симетричні відступи + fit-content);
+     тут композиції керують лише вертикаллю (top/bottom нижче) */
+  /* слово НЕ розбивається посеред; переноситься лише між словами */
+  .card.rvana .headline .l1, .card.rvana .headline .l2,
+  .card.script .headline .l1, .card.script .headline .l2,
+  .card.minimal .headline .l1, .card.minimal .headline .l2{ max-width:100%; text-wrap:balance; overflow-wrap:normal; word-break:keep-all; }
+
+  /* Рвана — масивний текстовий шрифт стилю + заголовковий-курсив акцентом, ліворуч */
+  .card.rvana .kicker{ left:70px; right:auto; text-align:left; }
+  .card.rvana .wrap{ bottom:180px; }
+  .card.rvana .headline{ line-height:0.9; }
+  .card.rvana .headline .l1{ font-family:var(--font-body); font-weight:900; font-style:normal; font-size:138px; letter-spacing:-0.01em; text-transform:uppercase; }
+  .card.rvana .headline .l2{ font-family:var(--font-display); font-style:italic; font-weight:var(--disp-weight); font-size:116px; line-height:0.95; letter-spacing:0; color:var(--accent); margin-top:2px; }
+  .card.rvana .rule{ display:none; }
+  .card.rvana .sub{ margin-top:32px; }
+  .card.rvana .handle{ left:70px; right:auto; text-align:left; }
+
+  /* Скрипт-акцент — заголовковий шрифт стилю акцентом + текстовий-гротеск, по центру */
+  .card.script .wrap{ bottom:auto; top:440px; }
+  .card.script .headline{ line-height:0.98; }
+  .card.script .headline .l1{ font-family:var(--font-display); font-weight:var(--disp-weight); font-style:var(--disp-style); font-size:150px; line-height:0.86; letter-spacing:0; color:var(--accent); }
+  .card.script .headline .l2{ font-family:var(--font-body); font-weight:900; font-style:normal; font-size:74px; line-height:1; letter-spacing:0.02em; text-transform:uppercase; margin-top:12px; }
+  .card.script .rule{ display:none; }
+  .card.script .sub{ margin-top:40px; }
+
+  /* Мінімал — величезний блок заголовковим шрифтом стилю; акцентне слово золоте, ліворуч */
+  .card.minimal .kicker{ left:70px; right:auto; text-align:left; }
+  .card.minimal .wrap{ bottom:auto; top:420px; }
+  .card.minimal .headline{ line-height:0.92; }
+  .card.minimal .headline .l1, .card.minimal .headline .l2{ font-family:var(--font-display); font-weight:var(--disp-weight); font-style:var(--disp-style); font-size:116px; letter-spacing:-0.02em; }
+  .card.minimal .headline .l2{ margin-top:2px; }
+  .card.minimal .rule{ display:none; }
+  .card.minimal .sub{ margin-top:48px; }
+  .card.minimal .handle{ left:70px; right:auto; text-align:left; }
+
+  /* акцентне слово (*зірочки*) зберігає композиційний шрифт, лише колір золотий */
+  .card.rvana .headline .ac, .card.script .headline .ac, .card.minimal .headline .ac{ font-family:inherit; font-weight:inherit; font-style:inherit; }
+"""
+
+
 def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
     """Єдине джерело істини для одного слайда: об'єднує тему й поля слайда
     у повний набір плейсхолдерів. Використовують і прев'ю, і експорт.
@@ -265,7 +365,8 @@ def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
                  "posX", "posY", "scale", "rotate", "cutX", "cutY", "cutScale",
                  "textX", "textY", "textAlign", "plate", "plateOpacity", "texture", "_open",
                  "dim", "cutRotate", "textureOp",
-                 "showKicker", "showRule", "showHandle", "photoFit"):
+                 "showKicker", "showRule", "showHandle", "photoFit",
+                 "layout", "titleX", "titleY", "titleScale", "titleRotate", "blockW"):
             continue
         # html.escape ПЕРЕД розміткою: текст користувача не може впорснути теги (self-XSS),
         # а «<», «&» більше не ламають верстку. Акцентні *зірочки* лишаються робочими.
@@ -280,6 +381,42 @@ def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
     # вирівнювання тексту: left | center | right | justify
     align = slide.get("textAlign") or "center"
     m["TEXT_ALIGN"] = align if align in ("left", "center", "right", "justify") else "center"
+    # justify → розкидати КОЖЕН рядок (включно останній): text-align-last
+    m["TEXT_ALIGN_LAST"] = "justify" if m["TEXT_ALIGN"] == "justify" else "auto"
+
+    # ── композиція обкладинки + докручування заголовка ──────────────────
+    layout = slide.get("layout")
+    layout = layout if layout in LAYOUTS else "classic"
+    m["LAYOUT"] = layout
+    m["TITLE_X"] = f"{_num(slide.get('titleX'), 0):g}"
+    m["TITLE_Y"] = f"{_num(slide.get('titleY'), 0):g}"
+    title_scale = _num(slide.get("titleScale"), 1)
+    title_rotate = _num(slide.get("titleRotate"), 0)
+    m["TITLE_SCALE"] = f"{title_scale:g}"
+    m["TITLE_ROTATE"] = f"{title_rotate:g}"
+    # докрутка (масштаб/поворот) застосовується до ВСЬОГО текст-блоку .wrap разом із підзаголовком,
+    # об'єднана з позицією блоку в один transform; origin — ліво для rvana/minimal, центр для решти
+    _tx = _num(slide.get("textX"), 0)
+    _ty = _num(slide.get("textY"), 0)
+    m["WRAP_TRANSFORM"] = f"translate({_tx:g}px,{_ty:g}px) scale({title_scale:g}) rotate({title_rotate:g}deg)"
+    m["WRAP_ORIGIN"] = "left center" if layout in ("rvana", "minimal") else "center"
+    # ширина текст-блоку (повзунок): % від картки → симетричні поля з обох боків.
+    # ширший блок = менші поля = довге слово вміщується в один рядок («К» не переноситься)
+    block_w = _num(slide.get("blockW"), 87)  # 87% ≈ поля 70px (як було)
+    pad_n = max(16, round(1080 * (1 - block_w / 100) / 2))
+    maxw = 1080 - 2 * pad_n
+    # Плашка обгортає текст ЩІЛЬНО (відступ праворуч = ліворуч), а не на всю ширину картки.
+    # width:max-content = за найдовшим рядком; позиція за вирівнюванням (центр → margin auto).
+    # justify лишається на повну ширину (текст сам розкиданий між полями). Використовує лише cover.
+    _plate = slide.get("plate") or "none"
+    if _plate == "none" or m["TEXT_ALIGN"] == "justify":
+        m["WRAP_POS"] = f"left:{pad_n}px; right:{pad_n}px;"
+    elif m["TEXT_ALIGN"] == "right":
+        m["WRAP_POS"] = f"left:auto; right:{pad_n}px; width:max-content; max-width:{maxw}px;"
+    elif m["TEXT_ALIGN"] == "left":
+        m["WRAP_POS"] = f"left:{pad_n}px; right:auto; width:max-content; max-width:{maxw}px;"
+    else:
+        m["WRAP_POS"] = f"left:0; right:0; margin-left:auto; margin-right:auto; width:max-content; max-width:{maxw}px;"
 
     # ── тло ─────────────────────────────────────────────
     # фонове фото доступне на БУДЬ-ЯКОМУ типі слайда (default photo лише для cover/photo)
@@ -316,7 +453,10 @@ def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
     if tex and tex.get("img") and tex_op >= 0.6:
         on_dark = tex.get("dark", False)              # текстура домінує → її яскравість
     else:                                             # слабка текстура / прозора над фото → тло видно
-        on_dark = show_photo or (bg_mode == "color" and _is_dark(m["CARD_BG"]))
+        # темність визначає ВИДИМЕ тло картки (CARD_BG) — незалежно від режиму: коли на обкладинці
+        # стоїть «фото», але фото не завантажене, видно темний coverBg → текст має бути світлим
+        # (інакше на Море/Ботанік/Глина виходив темний текст на темному тлі). Як у мобільній версії.
+        on_dark = show_photo or _is_dark(m["CARD_BG"])
     m["INK"] = base["TEXT_ON_DARK"] if on_dark else base["TEXT_ON_LIGHT"]
     m["BODY_INK"] = base.get("BODY_ON_DARK", base["TEXT_ON_DARK"]) if on_dark else base["BODY_ON_LIGHT"]
     m["META_INK"] = base.get("MUTED_ON_DARK", "rgba(255,250,248,0.9)") if on_dark \
@@ -346,8 +486,8 @@ def slide_map(base, slide, photo_resolver, fmt=DEFAULT_FORMAT):
     cut = slide.get("cutout") or ""
     m["CUTOUT"] = photo_resolver(cut) if cut else ""
     m["CUTOUT_DISPLAY"] = "block" if cut else "none"
-    m["CUT_X"] = f"{_num(slide.get('cutX'), 50):g}"
-    m["CUT_Y"] = f"{_num(slide.get('cutY'), 50):g}"
+    m["CUT_X"] = f"{_num(slide.get('cutX'), 0):g}"   # зсув об'єкта в px (1080-простір), 0 = центр
+    m["CUT_Y"] = f"{_num(slide.get('cutY'), 0):g}"
     m["CUT_SCALE"] = f"{_num(slide.get('cutScale'), 1):g}"
     m["CUT_ROTATE"] = f"{_num(slide.get('cutRotate'), 0):g}"
 
@@ -386,6 +526,58 @@ def fill(tpl, mapping):
     return PH.sub(lambda m: str(mapping.get(m.group(1), m.group(0))), tpl)
 
 
+# Авто-вписування заголовка в ширину картки. Кеглі композицій підібрані під вужчі
+# Apple-шрифти мобільної; ширші Google-шрифти (напр. Montserrat) тим самим словом «вилазять»
+# за край. Скрипт зменшує кегль заголовка/тези РІВНО настільки, щоб уміститись — коротке слово,
+# що й так влазить, лишається заданого розміру. Виконується у прев'ю (iframe) і в експорті
+# (headless Chrome / застосунок) — усюди, де є JS; на статиці ефекту нема, лишається як є.
+FIT_SCRIPT = """
+<script>
+(function(){
+  // реальна ширина тексту рядка (Range) — надійно навіть коли слово обрізане боксом/max-width,
+  // на відміну від scrollWidth, що для одного нерозривного слова буває клампнутий до боксу
+  function lineWidth(e){
+    try{ var r=document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().width; }
+    catch(_){ return e.scrollWidth; }
+  }
+  function fitBlock(b){
+    if(!b) return;
+    var kids=b.classList.contains('headline')?b.querySelectorAll('.l1,.l2'):null;
+    var els=(kids&&kids.length)?[].slice.call(kids):[b];
+    els.forEach(function(e){ e.style.fontSize=''; });          // скинути попередню підгонку
+    // міряємо КОЖЕН рядок і беремо найменший масштаб; застосовуємо до всіх (пропорція заголовка ціла)
+    var s=1;
+    els.forEach(function(e){ var box=e.clientWidth, over=lineWidth(e);
+      if(box>0 && over>box+1) s=Math.min(s, box/over); });
+    if(s<1){ els.forEach(function(e){ var fs=parseFloat(getComputedStyle(e).fontSize)||0;
+      if(fs) e.style.fontSize=(fs*s).toFixed(2)+'px'; }); }
+  }
+  function fit(){ var w=document.querySelector('.wrap'); if(!w) return;
+    fitBlock(w.querySelector('.headline')); fitBlock(w.querySelector('.lead')); }
+  function run(){ fit(); setTimeout(fit,80); setTimeout(fit,300); }
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(run);
+  window.addEventListener('load',run); run();
+})();
+</script>
+"""
+
+
+def render_slide_html(templates, base, slide, resolver, fmt=DEFAULT_FORMAT):
+    """Зібрати HTML одного слайда. Для обкладинки вбудовує композиційний CSS і клас
+    розкладки ({{LAYOUT}}) на .card. Спільний шлях для прев'ю (server.py) та експорту (main)."""
+    t = slide.get("type", "text")
+    tpl_key = "text" if t == "blank" else t   # «пустий» рендериться шаблоном text
+    if tpl_key not in templates:
+        tpl_key = "text"
+    tpl = templates[tpl_key]
+    if t == "cover":
+        tpl = tpl.replace('<div class="card">', '<div class="card {{LAYOUT}}">', 1) \
+                 .replace("</style>", COMPOSITION_CSS + "</style>", 1)
+    tpl = tpl.replace("</body>", FIT_SCRIPT + "</body>", 1)  # авто-вписування заголовка
+    m = slide_map(base, slide, resolver, fmt)
+    return fill(tpl, m)
+
+
 def to_file_url(photo, base):
     if not photo:
         return ""
@@ -420,8 +612,7 @@ def main():
         tpl_key = "text" if t == "blank" else t   # «пустий» рендериться шаблоном text
         if tpl_key not in templates:
             raise SystemExit(f"слайд {i}: невідомий type '{t}' (cover|text|photo|blank)")
-        m = slide_map(base, slide, resolver, fmt)
-        html = fill(templates[tpl_key], m)
+        html = render_slide_html(templates, base, slide, resolver, fmt)
         (OUT / f"{i:02d}.html").write_text(html, encoding="utf-8")
 
     w, h = format_wh(fmt)

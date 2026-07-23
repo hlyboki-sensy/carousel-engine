@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Композиційні пресети — макет</title>
+<style>
+  :root{
+    --accent:#FFD20E; --cream:#cfc9c2; --ink:#241c15; --dark:#14100c;
+    --serif:"Didot","Playfair Display",Georgia,serif;
+    --script:"Snell Roundhand","Savoye LET",cursive;
+    --black:"Arial Black","Helvetica Neue",Impact,sans-serif;
+    --sans:-apple-system,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans);background:#f4f2ee;color:var(--ink);padding:18px 14px 40px}
+  h1{font-family:var(--serif);font-weight:700;font-size:21px;margin-bottom:4px}
+  .sub{font-size:13px;color:#8a7f72;margin-bottom:20px;line-height:1.5}
+  .grid{display:flex;flex-direction:column;gap:22px}
+  .cell .cap{font-size:12px;color:#8a7f72;text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+  .cell .cap b{font-family:var(--serif);font-style:italic;font-weight:700;font-size:16px;color:var(--ink);text-transform:none;letter-spacing:0}
+  .card{aspect-ratio:3/4;position:relative;overflow:hidden;background:linear-gradient(150deg,#8a6a4a,#241a12);border:1px solid #e2ddd3}
+  .card .tone{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,12,8,.25),rgba(20,10,8,.05) 40%,rgba(14,7,5,.72))}
+  .kick{position:absolute;top:5%;color:rgba(244,239,231,.85);font-size:2.6vw;letter-spacing:.32em;text-transform:uppercase}
+  .hd{position:absolute;bottom:4.5%;font-size:2.4vw;letter-spacing:.28em;text-transform:lowercase;color:rgba(244,239,231,.78)}
+  .wrap{position:absolute;z-index:2;color:#f4efe7}
+  .l1,.l2{text-wrap:balance} /* без сиріт/вдів у заголовках (стандарт §3) */
+  .subt{text-wrap:pretty}
+
+  /* макс ширина мобільна — рахуємо vw від картки ~ (viewport-28)/1 */
+  @media(min-width:520px){ .card{max-width:none} }
+
+  /* 1. КЛАСИКА */
+  .c1 .kick{left:0;right:0;text-align:center}
+  .c1 .wrap{left:7%;right:7%;bottom:16%;text-align:center}
+  .c1 .l1{font-family:var(--serif);font-style:italic;font-weight:700;font-size:12vw;line-height:.95}
+  .c1 .l2{font-family:var(--serif);font-style:italic;font-weight:700;font-size:9vw;line-height:.98}
+  .c1 .rule{width:16%;height:3px;background:var(--accent);margin:5% auto 4%}
+  .c1 .subt{font-family:var(--sans);font-size:3vw;color:rgba(244,239,231,.9)}
+  .c1 .hd{left:0;right:0;text-align:center}
+
+  /* 2. РВАНА (масивний гротеск + serif-italic акцент, ліво) */
+  .c2 .kick{left:7%}
+  .c2 .wrap{left:6%;right:10%;bottom:14%;text-align:left}
+  .c2 .l1{font-family:var(--black);font-weight:900;font-size:14.5vw;line-height:.92;text-transform:uppercase;letter-spacing:-.01em}
+  .c2 .l2{font-family:var(--serif);font-style:italic;font-weight:700;font-size:12vw;line-height:.95;color:var(--accent)}
+  .c2 .subt{font-family:var(--sans);font-size:2.8vw;color:rgba(244,239,231,.82);margin-top:3%}
+  .c2 .hd{left:7%}
+
+  /* 3. СКРИПТ-АКЦЕНТ (скрипт великий + gros caps) */
+  .c3 .kick{left:0;right:0;text-align:center}
+  .c3 .wrap{left:8%;right:8%;top:34%;text-align:center}
+  .c3 .l1{font-family:var(--script);font-weight:600;font-size:17vw;line-height:.8;color:var(--accent)}
+  .c3 .l2{font-family:var(--black);font-weight:900;font-size:7vw;line-height:1;text-transform:uppercase;letter-spacing:.02em;margin-top:1%}
+  .c3 .subt{font-family:var(--sans);font-size:2.8vw;color:rgba(244,239,231,.85);margin-top:4%}
+  .c3 .hd{left:0;right:0;text-align:center}
+
+  /* 4. МІНІМАЛ (один величезний блок + дрібний підпис) */
+  .c4 .wrap{left:6%;right:6%;top:30%;text-align:left}
+  .c4 .l1{font-family:var(--black);font-weight:900;font-size:12.5vw;line-height:.92;text-transform:uppercase;letter-spacing:-.02em}
+  .c4 .l1 em{color:var(--accent);font-style:normal}
+  .c4 .subt{font-family:var(--sans);font-size:2.7vw;color:rgba(244,239,231,.8);margin-top:5%;max-width:70%}
+  .c4 .hd{left:6%}
+</style>
+</head>
+<body>
+  <h1>Композиційні пресети заголовка</h1>
+  <p class="sub">Той самий текст — 4 різні розкладки. Обери, які беремо (можна кілька). Далі кожну можна докрутити пальцем.</p>
+
+  <div class="grid">
+    <div class="cell">
+      <div class="cap"><b>1 · Класика</b> — симетрична, як зараз</div>
+      <div class="card c1"><div class="tone"></div>
+        <div class="kick">роздуми маркетолога</div>
+        <div class="wrap"><div class="l1">Світло</div><div class="l2">не&nbsp;бреше</div>
+          <div class="rule"></div><div class="subt">воно лише показує, де&nbsp;ти&nbsp;не&nbsp;дивишся</div></div>
+        <div class="hd">@hlyboki_sensy</div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <div class="cap"><b>2 · Рвана</b> — масивний гротеск + serif-курсив акцентом</div>
+      <div class="card c2"><div class="tone"></div>
+        <div class="kick">роздуми маркетолога</div>
+        <div class="wrap"><div class="l1">Світло</div><div class="l2">не&nbsp;бреше</div>
+          <div class="subt">воно лише показує, де&nbsp;ти&nbsp;не&nbsp;дивишся</div></div>
+        <div class="hd">@hlyboki_sensy</div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <div class="cap"><b>3 · Скрипт-акцент</b> — рукописний верх + гротеск</div>
+      <div class="card c3"><div class="tone"></div>
+        <div class="kick">роздуми маркетолога</div>
+        <div class="wrap"><div class="l1">Світло</div><div class="l2">не&nbsp;бреше</div>
+          <div class="subt">воно лише показує, де&nbsp;ти&nbsp;не&nbsp;дивишся</div></div>
+        <div class="hd">@hlyboki_sensy</div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <div class="cap"><b>4 · Мінімал</b> — один величезний блок + дрібний підпис</div>
+      <div class="card c4"><div class="tone"></div>
+        <div class="wrap"><div class="l1">Світло<br><em>не</em>&nbsp;бреше</div>
+          <div class="subt">воно лише показує, де&nbsp;ти вирішив не&nbsp;дивитися</div></div>
+        <div class="hd">@hlyboki_sensy</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

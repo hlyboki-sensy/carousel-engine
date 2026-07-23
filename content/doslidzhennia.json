@@ -1,0 +1,39 @@
+{
+  "name": "doslidzhennia",
+  "format": "3:4",
+  "slides": [
+    {
+      "type": "cover",
+      "bgMode": "color",
+      "bgColor": "",
+      "photo": "",
+      "texture": "linen",
+      "textureOp": 1,
+      "dim": 0,
+      "textAlign": "justify",
+      "plate": "none",
+      "showKicker": true,
+      "showRule": true,
+      "showHandle": true,
+      "ЗАГ_1": "Не знаєш,",
+      "ЗАГ_2": "що робити?",
+      "ПІДЗАГ": "Спитай своїх клієнтів → реальний кейс про силу опитувань"
+    },
+    {
+      "type": "text",
+      "bgMode": "color",
+      "bgColor": "",
+      "photo": "",
+      "texture": "linen",
+      "textureOp": 1,
+      "dim": 0,
+      "textAlign": "center",
+      "plate": "none",
+      "showKicker": true,
+      "showRule": true,
+      "showHandle": true,
+      "ТЕЗА": "Глухий кут",
+      "ТЕКСТ": "Коли бізнес застрягає — не ясно, що запускати, чому падають продажі, куди вкладати, — рішення часто шукають усередині. А відповідь є зовні. Опитування клієнтів — дешевий і швидкий спосіб перестати вгадувати й почути, що робити далі, від тих, хто платить."
+    }
+  ]
+}

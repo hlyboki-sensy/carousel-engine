@@ -54,8 +54,12 @@
   input::placeholder,textarea::placeholder{color:#b9b9b9}
   input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ink);
     box-shadow:0 0 0 3px rgba(38,38,38,.06)}
-  input[type=color]{width:46px;height:38px;padding:0;border:1px solid var(--line);
-    border-radius:8px;background:var(--field);cursor:pointer}
+  /* усі кольорові пікери — круглі кружечки без обводки (як у мобільній) */
+  input[type=color]{width:44px;height:44px;padding:0;border:none !important;
+    border-radius:50% !important;background:none;cursor:pointer;-webkit-appearance:none;appearance:none}
+  input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  input[type=color]::-webkit-color-swatch{border:none;border-radius:50%}
+  input[type=color]::-moz-color-swatch{border:none;border-radius:50%}
   input[type=range]{width:100%;accent-color:var(--accent)}
 
   /* сегментний перемикач — як IG-таби */
@@ -146,6 +150,12 @@
   .block,.slide,.pv,.pv .tag,.btn,.btn.mini,.seg,input,textarea,select,
   .thumb,.status,.slide .num{border-radius:0 !important}
   .mark,.mark img{border-radius:50% !important}
+  /* кольори стилю — круглі кружечки без контурів (як у мобільній версії) */
+  #palette input[type=color]{width:46px;height:46px;padding:0;border:none !important;
+    border-radius:50% !important;background:none;cursor:pointer;-webkit-appearance:none;appearance:none}
+  #palette input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  #palette input[type=color]::-webkit-color-swatch{border:none;border-radius:50%}
+  #palette input[type=color]::-moz-color-swatch{border:none;border-radius:50%}
 </style>
 </head>
 <body>
@@ -162,6 +172,7 @@
       </div>
       <h1>Карусель-панель</h1>
       <div class="addrow" style="margin-top:14px">
+        <button class="btn ghost mini" id="undoBtn" title="Крок назад" disabled>↶ Крок назад</button>
         <button class="btn ghost mini" id="saveproj">⬇ Зберегти проєкт</button>
         <button class="btn ghost mini" id="loadproj">⬆ Завантажити</button>
         <button class="btn ghost mini" id="newproj">🆕 Почати заново</button>
@@ -231,7 +242,7 @@
       <div class="label">Стиль · шрифти + кольори</div>
       <div class="addrow" id="fontpresets"></div>
       <div style="font-size:11px;color:var(--muted);margin:12px 0 6px">Кольори стилю&nbsp;— клікни, щоб&nbsp;підправити (діє поверх обраного стилю):</div>
-      <div id="palette" style="display:flex;flex-wrap:wrap;gap:12px"></div>
+      <div id="palette" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start"></div>
       <div class="row" style="gap:12px">
         <div style="flex:1;min-width:140px">
           <label class="f">Заголовки — назва</label>
@@ -433,12 +444,12 @@ const FONT_PRESETS=[
    c:{accent:"#FFD20E",photoBg:"#11151a",coverBg:"#cfc9c2",lightBg:"#d7d0c5",
       textOnDark:"#f4efe7",textOnLight:"#2b211b",bodyOnLight:"#473b31",
       mutedOnDark:"rgba(244,239,231,0.82)",mutedOnLight:"rgba(60,48,38,0.5)"}},
-  // ── Оксамит: золотий рукописний скрипт (заголовок) + світлий гротеск (текст) на темному
+  // ── Оксамит: рукописний скрипт + м'яка світла палітра (пудрово-рожевий × сіро-зелений)
   {t:"Оксамит", d:["Comforter Brush",_COMFORTER], b:["Montserrat",_MONT], dw:400, di:false, bw:500, bi:false,
-   sw:["#14110F","#C9A24B","#ECE3CE"],
-   c:{accent:"#C9A24B",photoBg:"#14110F",coverBg:"#14110F",lightBg:"#14110F",
-      textOnDark:"#C9A24B",textOnLight:"#C9A24B",bodyOnLight:"#ECE3CE",bodyOnDark:"#ECE3CE",
-      mutedOnDark:"rgba(236,227,206,0.6)",mutedOnLight:"rgba(236,227,206,0.6)"}},
+   sw:["#C99C97","#3E4A49","#E5E2E4"],
+   c:{accent:"#3E4A49",photoBg:"#3E4A49",coverBg:"#C99C97",lightBg:"#E5E2E4",
+      textOnDark:"#E5E2E4",textOnLight:"#3E4A49",bodyOnLight:"#6E7C7B",bodyOnDark:"#E5E2E4",
+      mutedOnDark:"rgba(229,226,228,0.7)",mutedOnLight:"rgba(62,74,73,0.6)"}},
   // ── Ніч: монохром-темний + один теплий спалах (monochromatic + accent pop)
   {t:"Ніч", d:["Montserrat",_MONT], b:["Montserrat",_MONT], dw:800, di:false, bw:500, bi:false,
    sw:["#141210","#F5F1EA","#FF6A3D"],
@@ -504,8 +515,10 @@ function applyFontPreset(p){ $("#fdName").value=p.d[0]; $("#fdUrl").value=p.d[1]
     slides.forEach(s=>{s.bgColor="";}); }
   refreshPaletteInputs(); renderSlides(); schedulePreview(); }
 // ── РЕДАКТОР КОЛЬОРІВ СТИЛЮ — ручне тонке налаштування палітри поверх пресету ──
-const PALETTE_FIELDS=[["lightBg","Тло світлого"],["coverBg","Тло обкладинки"],["photoBg","Тло темного"],
-  ["textOnLight","Заголовок (світле)"],["textOnDark","Заголовок (темне)"],["bodyOnLight","Текст (світле)"]];
+// Менше полів (як у мобільній): «Заголовок» (ink) = один пікер кольору тексту заголовка
+// на БУДЬ-ЯКОМУ тлі стилю (темному й світлому одразу), а не два окремих поля.
+const PALETTE_FIELDS=[["coverBg","Тло обкладинки"],["lightBg","Тло слайду"],
+  ["ink","Заголовок"],["bodyOnLight","Текст"]];
 function normHex(v){ return (typeof v==="string" && /^#[0-9a-fA-F]{6}$/.test(v)) ? v : ""; }
 function basePalette(){ return (FONT_PRESETS.find(p=>p.c)||{c:{}}).c; }   // фірмова палітра = дефолт
 function currentPalette(){ return styleColors || basePalette(); }
@@ -514,18 +527,23 @@ function initPalette(){
   const pal=currentPalette();
   PALETTE_FIELDS.forEach(([key,lbl])=>{
     const wrap=document.createElement("label");
-    wrap.style.cssText="display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--muted);align-items:center;text-align:center;width:64px";
-    wrap.textContent=lbl;
+    // кружечок ЗГОРИ, підпис ЗНИЗУ → усі кружечки вирівняні по верху (підпис може переноситись)
+    wrap.style.cssText="display:flex;flex-direction:column;gap:6px;font-size:10px;color:var(--muted);align-items:center;text-align:center;width:64px";
     const c=document.createElement("input"); c.type="color"; c.dataset.pkey=key;
-    c.style.cssText="width:44px;height:28px;padding:0;border:1px solid var(--line);cursor:pointer;background:none";
-    c.value=normHex(pal[key])||"#cccccc";
+    // вигляд (круглий кружечок без контуру) задає CSS #palette input[type=color].
+    // «Заголовок» (ink) представлений кольором тексту на темному тлі.
+    c.value=normHex(key==="ink"?pal.textOnDark:pal[key])||"#cccccc";
     c.oninput=()=>{ if(!styleColors) styleColors={...basePalette()};   // матеріалізуємо палітру перед правкою
-      styleColors[key]=c.value; renderSlides(); schedulePreview(); };
-    wrap.appendChild(c); box.appendChild(wrap);
+      if(key==="ink"){ styleColors.textOnDark=c.value; styleColors.textOnLight=c.value; }  // заголовок на будь-якому тлі
+      else styleColors[key]=c.value;
+      renderSlides(); schedulePreview(); };
+    const cap=document.createElement("span"); cap.textContent=lbl;   // підпис під кружечком
+    wrap.append(c, cap); box.appendChild(wrap);
   });
 }
 function refreshPaletteInputs(){ const pal=currentPalette();
-  document.querySelectorAll('#palette input[data-pkey]').forEach(c=>{ const v=normHex(pal[c.dataset.pkey]); if(v) c.value=v; }); }
+  document.querySelectorAll('#palette input[data-pkey]').forEach(c=>{ const k=c.dataset.pkey;
+    const v=normHex(k==="ink"?pal.textOnDark:pal[k]); if(v) c.value=v; }); }
 
 function initFonts(){ const box=$("#fontpresets");
   FONT_PRESETS.forEach(p=>{ const b=document.createElement("button");
@@ -555,12 +573,17 @@ function initFonts(){ const box=$("#fontpresets");
 function addSlide(type){
   const blank = type==="blank";
   const s={type, bgMode:(type==="cover"||type==="photo")?"photo":"color", bgColor:"",
-    photo:"", posX:0, posY:0, scale:1, rotate:0, cutout:"", cutX:50, cutY:50, cutScale:1,
+    photo:"", posX:0, posY:0, scale:1, rotate:0, cutout:"", cutX:0, cutY:0, cutScale:1,
     textX:0, textY:0, textAlign:"center", plate:"none", plateOpacity:0.5, texture:"",
     dim:0, cutRotate:0,
+    // композиція обкладинки + докрутка заголовка (діють лише для type==="cover")
+    layout:"classic", titleScale:1, titleRotate:0, blockW:87,
     // «Пустий» стартує без службових написів; решта — з ними (можна вимкнути тумблером)
     showKicker:!blank, showRule:!blank, showHandle:!blank};
-  FIELDS[type].forEach(([k])=>s[k]="");
+  // дефолтні демо-написи — ті самі, що в мобільній версії (базові слайди одразу зі змістом)
+  if(type==="cover"){ s["ЗАГ_1"]="Заголовок"; s["ЗАГ_2"]="у два рядки"; s["ПІДЗАГ"]="Короткий підзаголовок"; }
+  else if(type==="blank"){ FIELDS[type].forEach(([k])=>s[k]=""); }   // «пустий» лишається без тексту
+  else { s["ТЕЗА"]="Твоя теза"; s["ТЕКСТ"]="Розкрий думку кількома реченнями."; }
   slides.push(s); renderSlides(); schedulePreview();
 }
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -650,35 +673,7 @@ function renderSlides(){
       '<div style="font-size:11px;color:var(--muted);margin-top:6px">Підсвічене&nbsp;= показано. Клікни, щоб&nbsp;прибрати зайве. Кікер&nbsp;і&nbsp;хендл беруться з&nbsp;полів «Кікер»/«Хендл» угорі.</div>');
     card.appendChild(nm);
 
-    // --- ТЕКСТ: вирівнювання + позиція (синхрон із перетягуванням на прев'ю) ---
-    const tx=document.createElement("div"); tx.className="sub";
-    tx.innerHTML='<div class="cap">Текст — вирівнювання та позиція</div>';
-    const aseg=document.createElement("div"); aseg.className="seg";
-    [["left","⇤ ліво"],["center","⇔ центр"],["right","право ⇥"],["justify","≡ ширина"]].forEach(([v,t])=>{
-      const b=document.createElement("button"); b.textContent=t;
-      if((s.textAlign||"center")===v) b.classList.add("on");
-      b.onclick=()=>{s.textAlign=v;renderSlides();schedulePreview();};
-      aseg.appendChild(b);});
-    tx.appendChild(aseg);
-    slider(tx,"Текст ↔",s,"textX",-500,500,1);
-    slider(tx,"Текст ↕",s,"textY",-500,500,1);
-    card.appendChild(tx);
-
-    // --- ПЛАШКА під текстом (читабельність поверх «складного» фото) ---
-    const pl=document.createElement("div"); pl.className="sub";
-    pl.innerHTML='<div class="cap">Плашка під текстом</div>';
-    const pseg=document.createElement("div"); pseg.className="seg";
-    [["none","Немає"],["dark","Темна"],["light","Світла"],["blur","Розмиття"]].forEach(([v,t])=>{
-      const b=document.createElement("button"); b.textContent=t;
-      if((s.plate||"none")===v) b.classList.add("on");
-      b.onclick=()=>{ s.plate=v; if(s.plateOpacity==null) s.plateOpacity=0.5;
-        renderSlides(); schedulePreview(); };
-      pseg.appendChild(b);});
-    pl.appendChild(pseg);
-    if((s.plate||"none")!=="none") slider(pl,"Щільність",s,"plateOpacity",0.15,0.9,0.05);
-    card.appendChild(pl);
-
-    // --- ТЛО ---
+    // --- ТЛО: фото/колір + завантажити фото (одразу після написів, ПЕРЕД композицією — як у мобільній) ---
     const bg=document.createElement("div"); bg.className="sub";
     bg.innerHTML='<div class="cap">Тло</div>';
     if(HAS_PHOTO[s.type]){
@@ -720,16 +715,74 @@ function renderSlides(){
       bg.appendChild(fitseg);
       // кроп фону: рух у будь-який бік (px), масштаб, поворот
       const crop=document.createElement("div");crop.className="crop";
-      slider(crop,"Зсув ↔",s,"posX",-500,500,1);
-      slider(crop,"Зсув ↕",s,"posY",-500,500,1);
+      slider(crop,"Зсув ↔️",s,"posX",-500,500,1);
+      slider(crop,"Зсув ↕️",s,"posY",-500,500,1);
       slider(crop,"Масштаб",s,"scale",1,3,0.05);
       slider(crop,"Поворот",s,"rotate",-180,180,1);
       bg.appendChild(crop);
     }
-    // текстура тла (працює і на кольорі, і на фото)
-    const tlab=document.createElement("div");tlab.className="cap";
-    tlab.style.marginTop="12px";tlab.textContent="Текстура тла";
-    bg.appendChild(tlab);
+    card.appendChild(bg);
+
+    // --- КОМПОЗИЦІЯ обкладинки: пресет розкладки заголовка + докрутка (розмір/нахил/ширина) ---
+    if(s.type==="cover"){
+      // дефолти для старих проєктів (щоб повзунки не показували NaN)
+      if(s.layout==null) s.layout="classic";
+      if(s.titleScale==null) s.titleScale=1;
+      if(s.titleRotate==null) s.titleRotate=0;
+      if(s.blockW==null) s.blockW=87;
+      const cp=document.createElement("div"); cp.className="sub";
+      cp.innerHTML='<div class="cap">Композиція обкладинки</div>';
+      const cseg=document.createElement("div"); cseg.className="seg";
+      [["classic","Класика"],["rvana","Рвана"],["script","Скрипт"],["minimal","Мінімал"]].forEach(([v,t])=>{
+        const b=document.createElement("button"); b.textContent=t;
+        if((s.layout||"classic")===v) b.classList.add("on");
+        b.onclick=()=>{ s.layout=v;
+          // композиція виставляє свій дефолт вирівнювання (нижче його можна змінити вручну)
+          s.textAlign=(v==="rvana"||v==="minimal")?"left":"center";
+          renderSlides(); schedulePreview(); };
+        cseg.appendChild(b);});
+      cp.appendChild(cseg);
+      cp.insertAdjacentHTML("beforeend",
+        '<div style="font-size:11px;color:var(--muted);margin:6px 0 2px">Розкладка заголовка. «Класика»&nbsp;— як&nbsp;було. Нижче можна докрутити розмір, нахил і&nbsp;ширину блоку.</div>');
+      slider(cp,"Заголовок — розмір",s,"titleScale",0.55,1.75,0.01);
+      slider(cp,"Заголовок — нахил°",s,"titleRotate",-20,20,1);
+      slider(cp,"Ширина блоку %",s,"blockW",55,98,1);
+      const rb=mkMini("↺ скинути докрутку",()=>{ s.titleScale=1; s.titleRotate=0; renderSlides(); schedulePreview(); });
+      rb.style.marginTop="10px"; cp.appendChild(rb);
+      card.appendChild(cp);
+    }
+
+    // --- ТЕКСТ: вирівнювання + позиція (синхрон із перетягуванням на прев'ю) ---
+    const tx=document.createElement("div"); tx.className="sub";
+    tx.innerHTML='<div class="cap">Текст — вирівнювання та позиція</div>';
+    const aseg=document.createElement("div"); aseg.className="seg";
+    [["left","⇤ ліво"],["center","⇔ центр"],["right","право ⇥"],["justify","≡ ширина"]].forEach(([v,t])=>{
+      const b=document.createElement("button"); b.textContent=t;
+      if((s.textAlign||"center")===v) b.classList.add("on");
+      b.onclick=()=>{s.textAlign=v;renderSlides();schedulePreview();};
+      aseg.appendChild(b);});
+    tx.appendChild(aseg);
+    slider(tx,"Текст ↔️",s,"textX",-500,500,1);
+    slider(tx,"Текст ↕️",s,"textY",-500,500,1);
+    card.appendChild(tx);
+
+    // --- ПЛАШКА під текстом (читабельність поверх «складного» фото) ---
+    const pl=document.createElement("div"); pl.className="sub";
+    pl.innerHTML='<div class="cap">Плашка під текстом</div>';
+    const pseg=document.createElement("div"); pseg.className="seg";
+    [["none","Немає"],["dark","Темна"],["light","Світла"],["blur","Розмиття"]].forEach(([v,t])=>{
+      const b=document.createElement("button"); b.textContent=t;
+      if((s.plate||"none")===v) b.classList.add("on");
+      b.onclick=()=>{ s.plate=v; if(s.plateOpacity==null) s.plateOpacity=0.5;
+        renderSlides(); schedulePreview(); };
+      pseg.appendChild(b);});
+    pl.appendChild(pseg);
+    if((s.plate||"none")!=="none") slider(pl,"Щільність",s,"plateOpacity",0.15,0.9,0.05);
+    card.appendChild(pl);
+
+    // --- ТЕКСТУРА тла + затемнення (працює і на кольорі, і на фото) ---
+    const tex=document.createElement("div"); tex.className="sub";
+    tex.innerHTML='<div class="cap">Текстура тла</div>';
     const trow=document.createElement("div");trow.className="addrow";
     [["","Немає"],["kraft","Крафт"],["cream","Крем"],["glaze","Глазур"],["coffee","Кава"],
      ["chocolate","Шоколад"],["matcha","Матча"],["linen","Льон"],["flower","Квітка"],["leaf","Листя"],
@@ -740,15 +793,15 @@ function renderSlides(){
         s.textureOp = v ? (IMG_TEX.has(v)?1:0.5) : undefined;   // дефолт інтенсивності
         renderSlides(); schedulePreview(); };
       trow.appendChild(b);});
-    bg.appendChild(trow);
+    tex.appendChild(trow);
     // інтенсивність (прозорість) текстури — видно і текстуру, і фото під нею
     if(s.texture){
       if(s.textureOp==null) s.textureOp = IMG_TEX.has(s.texture)?1:0.5;
-      slider(bg,"Інтенсивність текстури",s,"textureOp",0,1,0.05);
+      slider(tex,"Інтенсивність текстури",s,"textureOp",0,1,0.05);
     }
     // затемнення всього тла/фото
-    slider(bg,"Затемнення тла",s,"dim",0,0.85,0.05);
-    card.appendChild(bg);
+    slider(tex,"Затемнення тла",s,"dim",0,0.85,0.05);
+    card.appendChild(tex);
 
     // --- ОБ'ЄКТ ЗВЕРХУ (готовий PNG без тла, над текстом) ---
     const ov=document.createElement("div"); ov.className="sub";
@@ -768,8 +821,8 @@ function renderSlides(){
       del.style.color="var(--danger)";
       wrap.append(img,name,del);ov.appendChild(wrap);
       const crop=document.createElement("div");crop.className="crop";
-      slider(crop,"Зсув ↔",s,"cutX",0,100,1);
-      slider(crop,"Зсув ↕",s,"cutY",0,100,1);
+      slider(crop,"Зсув ↔️",s,"cutX",-500,500,1);
+      slider(crop,"Зсув ↕️",s,"cutY",-500,500,1);
       slider(crop,"Масштаб",s,"cutScale",0.3,2,0.05);
       slider(crop,"Поворот",s,"cutRotate",-180,180,1);
       const hint=document.createElement("div");hint.style.cssText="font-size:11px;color:var(--muted);margin-top:6px";
@@ -863,17 +916,18 @@ function attachInteractions(pv,f,s){
   const cut=doc.querySelector('.cutout');
   if(cut && s.cutout){
     cut.style.pointerEvents='auto'; cut.style.cursor='grab';
+    const cutT=()=>'translate('+(+s.cutX||0)+'px,'+(+s.cutY||0)+'px) scale('+(s.cutScale||1)+') rotate('+(s.cutRotate||0)+'deg)';
     let drag=false,px,py,ox,oy;
     cut.addEventListener('mousedown',e=>{drag=true;cut.style.cursor='grabbing';
-      px=e.clientX;py=e.clientY;ox=+s.cutX;oy=+s.cutY;e.preventDefault();e.stopPropagation();});
+      px=e.clientX;py=e.clientY;ox=+s.cutX||0;oy=+s.cutY||0;e.preventDefault();e.stopPropagation();});
     doc.addEventListener('mousemove',e=>{if(!drag)return;const k=sc();
-      s.cutX=clamp(ox-(e.clientX-px)/(1080*k)*100,0,100);
-      s.cutY=clamp(oy-(e.clientY-py)/(H*k)*100,0,100);
-      cut.style.objectPosition=s.cutX+'% '+s.cutY+'%';});
+      s.cutX=Math.round(ox+(e.clientX-px)/k);   // зсув у 1080-просторі (translate) — рух обома осями
+      s.cutY=Math.round(oy+(e.clientY-py)/k);
+      cut.style.transform=cutT();});
     doc.addEventListener('mouseup',()=>{if(drag){drag=false;cut.style.cursor='grab';renderSlides();}});
     cut.addEventListener('wheel',e=>{ e.preventDefault();e.stopPropagation();
       s.cutScale=clamp(+s.cutScale+(e.deltaY<0?0.04:-0.04),0.3,2);
-      cut.style.transform='scale('+s.cutScale+') rotate('+(s.cutRotate||0)+'deg)'; renderSlidesDebounced(); },{passive:false});
+      cut.style.transform=cutT(); renderSlidesDebounced(); },{passive:false});
   }
   // ── ТЕКСТ: тягнути мишею ──
   const tel=doc.querySelector('.wrap');
@@ -929,7 +983,7 @@ $("#split").onclick=async()=>{
     if(res.error){status("Помилка: "+res.error,true);}
     else{ slides.splice(1);            // лишаємо тільки перший слайд (обкладинку)
       res.slides.forEach(sl=>{ const s={type:"text",bgMode:"color",bgColor:"",
-        photo:"",posX:0,posY:0,scale:1,rotate:0,cutout:"",cutX:50,cutY:50,cutScale:1,textX:0,textY:0,textAlign:"center",
+        photo:"",posX:0,posY:0,scale:1,rotate:0,cutout:"",cutX:0,cutY:0,cutScale:1,textX:0,textY:0,textAlign:"center",
         plate:"none",plateOpacity:0.5,texture:"",dim:0,cutRotate:0,_open:false,   // розкидані слайди — згорнуті
         "ТЕЗА":sl["ТЕЗА"]||"","ТЕКСТ":sl["ТЕКСТ"]||""}; slides.push(s); });
       renderSlides(); schedulePreview();
@@ -993,9 +1047,34 @@ function applyState(p){
 const AUTOSAVE_KEY="carousel_autosave_v1";
 let autosaveTimer=null;
 function autosaveNow(){
+  recordUndo(); // зафіксувати точку «крок назад» на кожному автозбереженні
   try{ localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({t:Date.now(), state:collectState()})); }catch(e){}
 }
 function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer=setTimeout(autosaveNow, 600); }
+
+// ── КРОК НАЗАД (undo, до 20 кроків) ──────────────────────────────────
+// Точка undo фіксується при кожному автозбереженні (debounce 600 мс). Стек тримає до 20 станів.
+const undoStack=[];
+let lastSnap=null; // JSON останнього зафіксованого стану
+function undoBaseline(){ lastSnap=JSON.stringify(collectState()); refreshUndo(); } // після завантаження/undo
+function recordUndo(){
+  const cur=JSON.stringify(collectState());
+  if(lastSnap!==null && lastSnap!==cur){
+    undoStack.push(lastSnap);
+    if(undoStack.length>20) undoStack.shift();
+  }
+  lastSnap=cur; refreshUndo();
+}
+function refreshUndo(){ const b=$("#undoBtn"); if(b) b.disabled=undoStack.length===0; }
+function doUndo(){
+  if(!undoStack.length) return;
+  const prev=undoStack.pop();
+  applyState(JSON.parse(prev));
+  lastSnap=prev; // відновлений стан = базовий (не пишемо його назад у стек)
+  renderSlides(); schedulePreview();
+  try{ localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({t:Date.now(), state:collectState()})); }catch(e){}
+  refreshUndo(); status("↶ Крок назад");
+}
 function loadAutosave(){
   try{ const raw=localStorage.getItem(AUTOSAVE_KEY); const o=raw?JSON.parse(raw):null;
     return (o && o.state && Array.isArray(o.state.slides)) ? o : null; }catch(e){ return null; }
@@ -1020,15 +1099,14 @@ async function loadProject(file){
 function startFresh(){
   if(!confirm("Почати з чистого аркуша? Поточну роботу буде замінено.\nЯкщо вона важлива — спершу «Зберегти проєкт» у файл.")) return;
   slides=[]; styleColors=null;
-  addSlide("cover"); addSlide("text");
-  slides[0]["ЗАГ_1"]="Введи сюди"; slides[0]["ПІДЗАГ"]="свій текст";
-  slides[1]["ТЕЗА"]="Введи тезу"; slides[1]["ТЕКСТ"]="Введи сюди свій текст";
+  addSlide("cover"); addSlide("text");   // демо-написи заповнює сам addSlide (як у мобільній)
   renderSlides(); schedulePreview(); autosaveNow(); status("Новий проєкт");
 }
 $("#saveproj").onclick=saveProject;
 $("#loadproj").onclick=()=>$("#loadprojInput").click();
 $("#loadprojInput").onchange=()=>{ const f=$("#loadprojInput").files[0]; if(f) loadProject(f); $("#loadprojInput").value=""; };
 $("#newproj").onclick=startFresh;
+$("#undoBtn").onclick=doUndo;
 
 (async()=>{ await loadConfig(); await loadThemes(); initFonts();
   const saved=loadAutosave();
@@ -1037,11 +1115,11 @@ $("#newproj").onclick=startFresh;
     const ago=Math.max(0,Math.round((Date.now()-(saved.t||Date.now()))/60000));
     status("↩ Відновлено вашу попередню роботу"+(ago?` (${ago} хв тому)`:"")+" · щоб очистити — «Почати заново»");
   } else {                                      // перший запуск → приклад-текст
-    addSlide("cover"); addSlide("text");
-    slides[0]["ЗАГ_1"]="Введи сюди"; slides[0]["ПІДЗАГ"]="свій текст";
-    slides[1]["ТЕЗА"]="Введи тезу"; slides[1]["ТЕКСТ"]="Введи сюди свій текст";
+    addSlide("cover"); addSlide("text");   // демо-написи заповнює сам addSlide (як у мобільній)
     renderSlides(); schedulePreview();
-  } })();
+  }
+  undoBaseline(); // базова точка «крок назад» після завантаження стану
+  })();
 </script>
 </body>
 </html>

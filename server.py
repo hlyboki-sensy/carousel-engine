@@ -125,12 +125,8 @@ def build_preview(theme_file, slides, overrides):
     fmt = ov.get("format", build.DEFAULT_FORMAT)
     htmls = []
     for slide in slides:
-        t = slide.get("type", "text")
-        tpl = "text" if t == "blank" else t   # «пустий» рендериться шаблоном text
-        if tpl not in TEMPLATES:
-            tpl = "text"
-        m = build.slide_map(base_map, slide, photo_url, fmt)
-        htmls.append(build.fill(TEMPLATES[tpl], m))
+        # спільний шлях із експортом: композиційний CSS обкладинки вбудовується й тут
+        htmls.append(build.render_slide_html(TEMPLATES, base_map, slide, photo_url, fmt))
     return htmls
 
 
@@ -196,7 +192,7 @@ def do_cutout(src_path):
     return str(dest.resolve())
 
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 
 
 def split_engine():
@@ -323,8 +319,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         if u.path == "/":
+            # no-store: браузер ніколи не тримає стару панель (інакше після оновлення движка
+            # у вкладці лишався б застарілий JS і «нічого не змінювалось»)
             return self._send(200, PANEL.read_text(encoding="utf-8"),
-                              "text/html; charset=utf-8", extra={"Content-Security-Policy": PANEL_CSP})
+                              "text/html; charset=utf-8",
+                              extra={"Content-Security-Policy": PANEL_CSP,
+                                     "Cache-Control": "no-store, no-cache, must-revalidate",
+                                     "Pragma": "no-cache"})
         if u.path == "/api/themes":
             return self._send(200, list_themes())
         if u.path == "/api/config":

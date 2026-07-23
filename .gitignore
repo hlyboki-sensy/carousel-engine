@@ -21,3 +21,6 @@ themes/_panel.json
 # Десктоп: важкі/відтворювані артефакти
 desktop/resources/
 desktop/dist/
+
+# Службова тека Claude Code
+.claude/

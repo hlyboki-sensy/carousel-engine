@@ -32,7 +32,7 @@
     font-family:var(--font-body); font-weight:400; font-size:22px;
     letter-spacing:0.40em; text-transform:uppercase; color:var(--meta); display:{{KICKER_DISPLAY}}; }
   .wrap{ width:860px; text-align:{{TEXT_ALIGN}}; z-index:3;
-    transform:translate({{TEXT_X}}px,{{TEXT_Y}}px);
+    transform:{{WRAP_TRANSFORM}}; transform-origin:{{WRAP_ORIGIN}}; text-align-last:{{TEXT_ALIGN_LAST}};
     background:{{PLATE_BG}}; -webkit-backdrop-filter:{{PLATE_BLUR}}; backdrop-filter:{{PLATE_BLUR}}; padding:{{PLATE_PAD}}; }
   .lead{ font-weight:var(--disp-weight); font-style:var(--disp-style); font-size:96px; line-height:1.0; letter-spacing:0.01em;
     color:var(--ink); text-wrap:balance; }
@@ -49,8 +49,8 @@
   .ac{ font-family:{{ACCENT_FONT}}; color:{{ACCENT_COLOR}};
     font-weight:{{ACCENT_WEIGHT}}; font-style:{{ACCENT_STYLE}}; }
   /* вирізаний об'єкт — верхній шар, над текстом */
-  .cutout{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-    object-position:{{CUT_X}}% {{CUT_Y}}%; transform:scale({{CUT_SCALE}}) rotate({{CUT_ROTATE}}deg); transform-origin:center;
+  .cutout{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+    transform:translate({{CUT_X}}px,{{CUT_Y}}px) scale({{CUT_SCALE}}) rotate({{CUT_ROTATE}}deg); transform-origin:center;
     display:{{CUTOUT_DISPLAY}}; z-index:5; pointer-events:none; }
 </style>
 </head>

@@ -26,25 +26,28 @@
     transform:translate(-50%,-50%) translate({{POS_X}}px,{{POS_Y}}px) scale({{SCALE}}) rotate({{ROTATE}}deg); transform-origin:center;
     display:{{PHOTO_DISPLAY}}; filter:saturate(0.98); z-index:0; }
   .tone{ position:absolute; inset:0; z-index:1; pointer-events:none; display:{{GRAD_DISPLAY}}; background:linear-gradient(180deg,
-      rgba(28,16,12,0.30) 0%, rgba(28,16,12,0.04) 20%, rgba(22,12,10,0.00) 48%,
-      rgba(20,10,8,0.50) 78%, rgba(14,7,5,0.78) 100%); }
+      rgba(20,12,9,0.48) 0%, rgba(24,14,10,0.12) 22%, rgba(22,12,10,0.00) 48%,
+      rgba(20,10,8,0.52) 78%, rgba(14,7,5,0.80) 100%); }
   .kicker{ position:absolute; top:68px; left:0; right:0; text-align:center; z-index:3;
     font-family:var(--font-body); font-weight:400; font-size:23px;
     letter-spacing:0.40em; text-transform:uppercase; color:var(--meta);
-    text-shadow:0 1px 20px rgba(0,0,0,0.5); display:{{KICKER_DISPLAY}}; }
-  /* весь текстовий блок обкладинки — один контейнер: лінійка завжди з ним і вирівнюється */
-  .wrap{ position:absolute; left:70px; right:70px; bottom:150px; z-index:3;
-    text-align:{{TEXT_ALIGN}}; color:var(--ink); transform:translate({{TEXT_X}}px,{{TEXT_Y}}px);
+    text-shadow:0 1px 3px rgba(0,0,0,0.6), 0 1px 22px rgba(0,0,0,0.55); display:{{KICKER_DISPLAY}}; }
+  /* весь текстовий блок обкладинки — один контейнер: лінійка завжди з ним і вирівнюється.
+     {{WRAP_POS}} — ліво/право/ширина (щільна плашка за вирівнюванням); докрутка (масштаб/поворот)
+     у {{WRAP_TRANSFORM}} разом із підзаголовком; text-align-last робить justify рівним в останньому рядку */
+  .wrap{ position:absolute; {{WRAP_POS}} bottom:150px; z-index:3;
+    text-align:{{TEXT_ALIGN}}; color:var(--ink); transform:{{WRAP_TRANSFORM}}; transform-origin:{{WRAP_ORIGIN}}; text-align-last:{{TEXT_ALIGN_LAST}};
     background:{{PLATE_BG}}; -webkit-backdrop-filter:{{PLATE_BLUR}}; backdrop-filter:{{PLATE_BLUR}}; padding:{{PLATE_PAD}}; }
   .headline{ line-height:0.98; text-shadow:0 2px 46px rgba(20,8,6,0.7); }
   .headline .l1{ display:block; font-size:150px; font-weight:var(--disp-weight); font-style:var(--disp-style); letter-spacing:-0.01em; }
   .headline .l2{ display:block; font-size:118px; font-weight:var(--disp-weight); letter-spacing:0.005em; margin-top:6px; }
   .rule{ display:{{RULE_DISPLAY}}; width:70px; height:3px; background:var(--accent); margin:26px 0 22px; }
   .sub{ font-family:var(--font-body); font-weight:var(--body-weight); font-style:var(--body-style); font-size:30px;
-    letter-spacing:0.02em; color:var(--body-ink); text-shadow:0 1px 24px rgba(0,0,0,0.35); }
+    letter-spacing:0.02em; color:var(--body-ink); text-shadow:0 1px 3px rgba(0,0,0,0.5), 0 1px 24px rgba(0,0,0,0.4); }
   .handle{ position:absolute; bottom:60px; left:0; right:0; text-align:center; z-index:3;
     font-family:var(--font-body); font-weight:400; font-size:24px;
-    letter-spacing:0.34em; text-transform:lowercase; color:var(--meta); display:{{HANDLE_DISPLAY}}; }
+    letter-spacing:0.34em; text-transform:lowercase; color:var(--meta);
+    text-shadow:0 1px 3px rgba(0,0,0,0.65), 0 1px 16px rgba(0,0,0,0.5); display:{{HANDLE_DISPLAY}}; }
   .texture{ position:absolute; inset:0; z-index:2; pointer-events:none; display:{{TEXTURE_DISPLAY}};
     background:{{TEXTURE}}; background-size:{{TEXTURE_SIZE}}; background-repeat:repeat;
     mix-blend-mode:{{TEXTURE_BLEND}}; opacity:{{TEXTURE_OP}}; }
@@ -52,8 +55,8 @@
   .ac{ font-family:{{ACCENT_FONT}}; color:{{ACCENT_COLOR}};
     font-weight:{{ACCENT_WEIGHT}}; font-style:{{ACCENT_STYLE}}; }
   /* вирізаний об'єкт — верхній шар, над текстом */
-  .cutout{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-    object-position:{{CUT_X}}% {{CUT_Y}}%; transform:scale({{CUT_SCALE}}) rotate({{CUT_ROTATE}}deg); transform-origin:center;
+  .cutout{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+    transform:translate({{CUT_X}}px,{{CUT_Y}}px) scale({{CUT_SCALE}}) rotate({{CUT_ROTATE}}deg); transform-origin:center;
     display:{{CUTOUT_DISPLAY}}; z-index:5; pointer-events:none; }
 </style>
 </head>

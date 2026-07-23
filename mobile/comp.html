@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root{
+    --accent:#FFD20E;
+    --serif:"Didot","Playfair Display",Georgia,serif;
+    --script:"Snell Roundhand","Savoye LET",cursive;
+    --black:"Arial Black","Helvetica Neue",Impact,sans-serif;
+    --sans:-apple-system,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1080px;height:1440px}
+  .card{width:1080px;height:1440px;position:relative;overflow:hidden;background:linear-gradient(150deg,#8a6a4a,#241a12);color:#f4efe7}
+  .tone{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,12,8,.25),rgba(20,10,8,.05) 40%,rgba(14,7,5,.72))}
+  .kick{position:absolute;top:70px;color:rgba(244,239,231,.85);font-size:26px;letter-spacing:.34em;text-transform:uppercase;font-family:var(--sans)}
+  .hd{position:absolute;bottom:64px;font-size:24px;letter-spacing:.28em;text-transform:lowercase;color:rgba(244,239,231,.78);font-family:var(--sans)}
+  .wrap{position:absolute;z-index:2}
+  .l1,.l2{text-wrap:balance}
+  .subt{text-wrap:pretty;font-family:var(--sans)}
+
+  /* РВАНА */
+  .rvana .kick{left:70px}
+  .rvana .wrap{left:64px;right:108px;bottom:190px;text-align:left}
+  .rvana .l1{font-family:var(--black);font-weight:900;font-size:158px;line-height:.92;text-transform:uppercase;letter-spacing:-.01em}
+  .rvana .l2{font-family:var(--serif);font-style:italic;font-weight:700;font-size:130px;line-height:.95;color:var(--accent)}
+  .rvana .subt{font-size:32px;color:rgba(244,239,231,.85);margin-top:34px}
+  .rvana .hd{left:70px}
+
+  /* СКРИПТ-АКЦЕНТ */
+  .script .kick{left:0;right:0;text-align:center}
+  .script .wrap{left:86px;right:86px;top:480px;text-align:center}
+  .script .l1{font-family:var(--script);font-weight:600;font-size:186px;line-height:.8;color:var(--accent)}
+  .script .l2{font-family:var(--black);font-weight:900;font-size:78px;line-height:1;text-transform:uppercase;letter-spacing:.02em;margin-top:12px}
+  .script .subt{font-size:32px;color:rgba(244,239,231,.85);margin-top:44px}
+  .script .hd{left:0;right:0;text-align:center}
+
+  /* МІНІМАЛ */
+  .minimal .wrap{left:64px;right:64px;top:430px;text-align:left}
+  .minimal .l1{font-family:var(--black);font-weight:900;font-size:138px;line-height:.92;text-transform:uppercase;letter-spacing:-.02em}
+  .minimal .l1 em{color:var(--accent);font-style:normal}
+  .minimal .subt{font-size:31px;color:rgba(244,239,231,.82);margin-top:56px;max-width:74%}
+  .minimal .hd{left:64px}
+</style>
+</head>
+<body>
+  <div class="card" id="card"></div>
+  <script>
+    const c = (new URLSearchParams(location.search).get("c")) || "rvana";
+    const card = document.getElementById("card");
+    card.className = "card " + c;
+    const kick = '<div class="kick">роздуми маркетолога</div>';
+    const hd = '<div class="hd">@hlyboki_sensy</div>';
+    const sub = 'воно лише показує, де&nbsp;ти&nbsp;не&nbsp;дивишся';
+    const T = {
+      rvana:  '<div class="tone"></div>'+kick+'<div class="wrap"><div class="l1">Світло</div><div class="l2">не&nbsp;бреше</div><div class="subt">'+sub+'</div></div>'+hd,
+      script: '<div class="tone"></div>'+kick+'<div class="wrap"><div class="l1">Світло</div><div class="l2">не&nbsp;бреше</div><div class="subt">'+sub+'</div></div>'+hd,
+      minimal:'<div class="tone"></div><div class="wrap"><div class="l1">Світло<br><em>не</em>&nbsp;бреше</div><div class="subt">воно лише показує, де&nbsp;ти вирішив не&nbsp;дивитися</div></div>'+hd,
+    };
+    card.innerHTML = T[c] || T.rvana;
+  </script>
+</body>
+</html>

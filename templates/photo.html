@@ -27,7 +27,7 @@
       linear-gradient(180deg, rgba(10,14,20,0.32) 0%, rgba(10,14,20,0.05) 22%,
       rgba(10,14,20,0.18) 44%, rgba(8,12,18,0.62) 66%, rgba(6,10,16,0.88) 100%); }
   .wrap{ position:absolute; left:90px; right:90px; bottom:330px; text-align:{{TEXT_ALIGN}}; color:var(--ink); z-index:3;
-    transform:translate({{TEXT_X}}px,{{TEXT_Y}}px);
+    transform:{{WRAP_TRANSFORM}}; transform-origin:{{WRAP_ORIGIN}}; text-align-last:{{TEXT_ALIGN_LAST}};
     background:{{PLATE_BG}}; -webkit-backdrop-filter:{{PLATE_BLUR}}; backdrop-filter:{{PLATE_BLUR}}; padding:{{PLATE_PAD}}; }
   .lead{ font-weight:var(--disp-weight); font-style:var(--disp-style); font-size:104px; line-height:1; letter-spacing:0.01em;
     text-shadow:0 3px 44px rgba(0,0,0,0.5); }
@@ -45,8 +45,8 @@
   .ac{ font-family:{{ACCENT_FONT}}; color:{{ACCENT_COLOR}};
     font-weight:{{ACCENT_WEIGHT}}; font-style:{{ACCENT_STYLE}}; }
   /* вирізаний об'єкт — верхній шар, над текстом */
-  .cutout{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-    object-position:{{CUT_X}}% {{CUT_Y}}%; transform:scale({{CUT_SCALE}}) rotate({{CUT_ROTATE}}deg); transform-origin:center;
+  .cutout{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+    transform:translate({{CUT_X}}px,{{CUT_Y}}px) scale({{CUT_SCALE}}) rotate({{CUT_ROTATE}}deg); transform-origin:center;
     display:{{CUTOUT_DISPLAY}}; z-index:5; pointer-events:none; }
 </style>
 </head>

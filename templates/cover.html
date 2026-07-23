@@ -37,7 +37,7 @@
      у {{WRAP_TRANSFORM}} разом із підзаголовком; text-align-last робить justify рівним в останньому рядку */
   .wrap{ position:absolute; {{WRAP_POS}} bottom:150px; z-index:3;
     text-align:{{TEXT_ALIGN}}; color:var(--ink); transform:{{WRAP_TRANSFORM}}; transform-origin:{{WRAP_ORIGIN}}; text-align-last:{{TEXT_ALIGN_LAST}};
-    background:{{PLATE_BG}}; -webkit-backdrop-filter:{{PLATE_BLUR}}; backdrop-filter:{{PLATE_BLUR}}; padding:{{PLATE_PAD}}; }
+    background:{{PLATE_BG}}; -webkit-backdrop-filter:{{PLATE_BLUR}}; backdrop-filter:{{PLATE_BLUR}}; padding:{{PLATE_PAD}}; overflow-wrap:anywhere; }
   .headline{ line-height:0.98; text-shadow:0 2px 46px rgba(20,8,6,0.7); }
   .headline .l1{ display:block; font-size:150px; font-weight:var(--disp-weight); font-style:var(--disp-style); letter-spacing:-0.01em; }
   .headline .l2{ display:block; font-size:118px; font-weight:var(--disp-weight); letter-spacing:0.005em; margin-top:6px; }

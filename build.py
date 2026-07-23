@@ -311,10 +311,11 @@ COMPOSITION_CSS = """
   /* докрутка (масштаб/поворот) — на .wrap разом із підзаголовком (див. WRAP_TRANSFORM у шаблоні) */
   /* ліво/право/ширину плашки задає базовий WRAP_POS (симетричні відступи + fit-content);
      тут композиції керують лише вертикаллю (top/bottom нижче) */
-  /* слово НЕ розбивається посеред; переноситься лише між словами */
+  /* Звичайне слово переноситься лише між словами. Наддовге слово, ширше за плашку,
+     ЛАМАЄТЬСЯ (overflow-wrap:anywhere) — інакше вилазить за межі плашки й краю картки. */
   .card.rvana .headline .l1, .card.rvana .headline .l2,
   .card.script .headline .l1, .card.script .headline .l2,
-  .card.minimal .headline .l1, .card.minimal .headline .l2{ max-width:100%; text-wrap:balance; overflow-wrap:normal; word-break:keep-all; }
+  .card.minimal .headline .l1, .card.minimal .headline .l2{ max-width:100%; text-wrap:balance; overflow-wrap:anywhere; word-break:normal; }
 
   /* Рвана — масивний текстовий шрифт стилю + заголовковий-курсив акцентом, ліворуч */
   .card.rvana .kicker{ left:70px; right:auto; text-align:left; }

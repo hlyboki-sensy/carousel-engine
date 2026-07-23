@@ -348,10 +348,12 @@ const COMPOSITION_CSS = `
 
   /* ліво/право/ширину плашки задає базовий {{WRAP_POS}} (симетричні відступи + fit-content);
      тут композиції керують лише вертикаллю (top/bottom нижче) */
-  /* слово НЕ розбивається посеред (щоб не було «ЗАГОЛОВО»+«К»); переноситься лише між словами */
+  /* Звичайне слово переноситься лише між словами й не розбивається посеред.
+     Але наддовге слово, ширше за плашку, ЛАМАЄТЬСЯ (overflow-wrap:anywhere) —
+     інакше воно вилазить за межі плашки й за край картки (плашка не покриває текст). */
   .card.rvana .headline .l1, .card.rvana .headline .l2,
   .card.script .headline .l1, .card.script .headline .l2,
-  .card.minimal .headline .l1, .card.minimal .headline .l2{ max-width:100%; text-wrap:balance; overflow-wrap:normal; word-break:keep-all; }
+  .card.minimal .headline .l1, .card.minimal .headline .l2{ max-width:100%; text-wrap:balance; overflow-wrap:anywhere; word-break:normal; }
 
   /* Рвана — масивний текстовий шрифт стилю + заголовковий-курсив акцентом, ліворуч.
      Шрифти беруться зі СТИЛЮ (--font-body/--font-display) → зміна стилю змінює композицію. */
